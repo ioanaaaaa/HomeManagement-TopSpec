@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmailService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HomeManagement_SpecTop$AllTests.exec</a> &gt; <a href="index.source.html" class="el_package">com.example.home.services</a> &gt; <span class="el_source">EmailService.java</span></div><h1>EmailService.java</h1><pre class="source lang-java linenums">package com.example.home.services;
+
+import com.example.home.helpers.email.templates.AssignTaskTemplateEmail;
+import com.example.home.helpers.email.templates.RegisterEmailTemplate;
+import com.example.home.models.Task;
+import com.example.home.services.observable.TaskObservableModel;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import java.io.*;
+import java.util.*;
+
+@Service
+<span class="nc" id="L22">public class EmailService {</span>
+
+    @Value(&quot;${com.example.home.email.send-emails}&quot;) Boolean sendEmails;
+    @Value(&quot;${com.example.home.email.host}&quot;) String host;
+    @Value(&quot;${com.example.home.email.port}&quot;) String port;
+    @Value(&quot;${com.example.home.email.username}&quot;) String username;
+    @Value(&quot;${com.example.home.email.password}&quot;) String password;
+    @Value(&quot;${com.example.home.email.from-email}&quot;) String fromEmail;
+    @Value(&quot;${com.example.home.email.from-name}&quot;) String fromName;
+
+
+    public void sendRegisterEmail(String toEmail) {
+<span class="nc" id="L34">        this.sendEmail(toEmail,</span>
+                &quot;You have joined HomeManagement!&quot;,
+<span class="nc" id="L36">                RegisterEmailTemplate.getInstance().getTemplate(),</span>
+                null,
+                null);
+<span class="nc" id="L39">    }</span>
+
+    public void sendAssignmentTaskEmail(String userEmail, Task task){
+<span class="nc" id="L42">        this.sendEmail(userEmail,</span>
+<span class="nc" id="L43">                &quot;Task (id: &quot; + task.getId() + &quot;, title: &quot; + task.getTitle() + &quot;)&quot;,</span>
+<span class="nc" id="L44">                AssignTaskTemplateEmail.getInstance().getTemplate(),</span>
+                null,
+                null);
+<span class="nc" id="L47">    }</span>
+
+    public void sendNotificationEmailToManager(String managerEmail, TaskObservableModel taskUpdates){
+<span class="nc" id="L50">        this.sendEmail(managerEmail,</span>
+<span class="nc" id="L51">                &quot;Task (id: &quot; + taskUpdates.getId() + &quot;, title: &quot; + taskUpdates.getTitle() + &quot;)&quot;,</span>
+<span class="nc" id="L52">                &quot;Task with name &quot; + taskUpdates.getTitle() + &quot; was claimed by &quot; + taskUpdates.getUserOnTask().getFullname() + &quot;(&quot; + taskUpdates.getUserOnTask().getEmail() + &quot; )&quot;+&quot; !&quot;,</span>
+                null,
+                null);
+<span class="nc" id="L55">    }</span>
+
+    private void sendEmail(String toEmail, String subject, String htmlContent, InputStream attachment, String attachmentName) {
+<span class="nc" id="L58">        Session session = getSession();</span>
+<span class="nc" id="L59">        MimeMessage message = new MimeMessage(session);</span>
+
+        try {
+<span class="nc" id="L62">            message.addHeader(&quot;Content-Type&quot;, &quot;text/html; charset=UTF-8&quot;);</span>
+<span class="nc" id="L63">            message.addHeader(&quot;format&quot;, &quot;flowed&quot;);</span>
+<span class="nc" id="L64">            message.addHeader(&quot;Content-Transfer-Encoding&quot;, &quot;8bit&quot;);</span>
+
+<span class="nc" id="L66">            message.setFrom(new InternetAddress(fromEmail, fromName));</span>
+<span class="nc" id="L67">            message.setReplyTo(InternetAddress.parse(fromEmail, false));</span>
+<span class="nc" id="L68">            message.setSubject(subject, &quot;UTF-8&quot;);</span>
+<span class="nc" id="L69">            message.setSentDate(new Date());</span>
+<span class="nc" id="L70">            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail, false));</span>
+
+<span class="nc" id="L72">            MimeBodyPart messageBodyPart = new MimeBodyPart();</span>
+<span class="nc" id="L73">            messageBodyPart.setText(htmlContent, &quot;UTF-8&quot;, &quot;html&quot;);</span>
+<span class="nc" id="L74">            messageBodyPart.setDescription(&quot;task details&quot;);</span>
+
+<span class="nc bnc" id="L76" title="All 2 branches missed.">            if(null != attachment) {</span>
+<span class="nc" id="L77">                DataSource source = new FileDataSource(attachmentName);</span>
+<span class="nc" id="L78">                messageBodyPart.setDataHandler(new DataHandler(source));</span>
+<span class="nc" id="L79">                messageBodyPart.setFileName(attachmentName);</span>
+
+            }
+<span class="nc" id="L82">            Multipart multipart = new MimeMultipart();</span>
+<span class="nc" id="L83">            multipart.addBodyPart(messageBodyPart);</span>
+
+<span class="nc" id="L85">            message.setContent(multipart);</span>
+<span class="nc" id="L86">            Transport.send(message);</span>
+<span class="nc" id="L87">        } catch (Exception ex) {</span>
+<span class="nc" id="L88">            ex.printStackTrace();</span>
+<span class="nc" id="L89">        }</span>
+<span class="nc" id="L90">    }</span>
+
+    private Session getSession() {
+<span class="nc" id="L93">        Properties properties = new Properties();</span>
+<span class="nc" id="L94">        properties.put(&quot;mail.smtp.host&quot;, host);</span>
+<span class="nc" id="L95">        properties.put(&quot;mail.smtp.port&quot;, port);</span>
+<span class="nc" id="L96">        properties.put(&quot;mail.smtp.auth&quot;, true);</span>
+<span class="nc" id="L97">        properties.put(&quot;mail.smtp.starttls.enable&quot;, true);</span>
+
+<span class="nc" id="L99">        Authenticator authenticator = new Authenticator() {</span>
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+<span class="nc" id="L102">                return new PasswordAuthentication(username, password);</span>
+            }
+        };
+<span class="nc" id="L105">        return Session.getInstance(properties, authenticator);</span>
+    }
+
+//    public void generateDocumentTable(String pdfName, List&lt;TransactionDto&gt; transactions) throws IOException, DocumentException, ParseException {
+//        Document document = new Document();
+//
+//        PrintWriter pw = new PrintWriter(pdfName + &quot;.pdf&quot;);
+//        pw.close();
+//
+//        PdfWriter.getInstance(document, new FileOutputStream(pdfName + &quot;.pdf&quot;));
+//
+//        document.open();
+//
+//        PdfPTable table = new PdfPTable(4);
+//        addTableHeader(table);
+//        addRows(table, transactions);
+//
+//        document.add(table);
+//        document.close();
+//    }
+//
+//    private void addTableHeader(PdfPTable table) {
+//        Stream.of(&quot;De la user-ul&quot;, &quot;Catre user-ul&quot;, &quot;Suma&quot;, &quot;Data&quot;)
+//                .forEach(columnTitle -&gt; {
+//                    PdfPCell header = new PdfPCell();
+//                    header.setBackgroundColor(BaseColor.LIGHT_GRAY);
+//                    header.setBorderWidth(2);
+//                    header.setPhrase(new Phrase(columnTitle));
+//                    table.addCell(header);
+//                });
+//    }
+//
+//    private void addRows(PdfPTable table , List&lt;TransactionDto&gt; transactionsToDisplay) throws ParseException {
+//
+//        transactionsToDisplay.forEach(transaction -&gt;  {
+//            table.addCell(transaction.getFromUser().getFullname());
+//            table.addCell(transaction.getToUser().getFullname());
+//            table.addCell(transaction.getAmount().toString());
+//            table.addCell(transaction.getDate().toString());
+//        }
+//        );
+//    }
+//
+//    public void sendReportEmail(String userEmail, List&lt;TransactionDto&gt; transactionDtos) throws DocumentException, IOException, URISyntaxException, MessagingException, ParseException {
+//        generateDocumentTable(&quot;report&quot;, transactionDtos);
+//        sendEmail(userEmail, &quot;Raport tranzactii!&quot;,new String(),new FileInputStream(&quot;report.pdf&quot;), &quot;report.pdf&quot;);
+//    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

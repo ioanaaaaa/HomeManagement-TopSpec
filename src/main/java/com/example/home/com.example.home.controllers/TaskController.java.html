@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TaskController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HomeManagement_SpecTop$AllTests.exec</a> &gt; <a href="index.source.html" class="el_package">com.example.home.controllers</a> &gt; <span class="el_source">TaskController.java</span></div><h1>TaskController.java</h1><pre class="source lang-java linenums">package com.example.home.controllers;
+
+import com.example.home.dtos.tasks.CreateTaskDto;
+import com.example.home.dtos.tasks.TaskFilterDto;
+import com.example.home.dtos.tasks.TaskModelDto;
+import com.example.home.services.TaskService;
+import javassist.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/tasks&quot;)
+public class TaskController {
+    private final TaskService taskService;
+
+    @Autowired
+<span class="nc" id="L22">    public TaskController(TaskService taskService) {</span>
+<span class="nc" id="L23">        this.taskService = taskService;</span>
+<span class="nc" id="L24">    }</span>
+
+    @PostMapping(&quot;/add-edit&quot;)
+    public ResponseEntity createOrEditTask(Principal principal, @RequestBody CreateTaskDto taskDto) {
+<span class="nc" id="L28">        taskService.createOrEditTask(taskDto, principal);</span>
+<span class="nc" id="L29">        return new ResponseEntity(HttpStatus.OK);</span>
+    }
+
+    @GetMapping(&quot;&quot;)
+    public List&lt;TaskModelDto&gt; getAllTasks() {
+<span class="nc" id="L34">        return taskService.getAllTasks();</span>
+    }
+
+    /**
+     * Get open tasks for current user.
+     * returns also the tasks that are assigned to groups to which the user belongs.
+     *
+     * @param principal
+     * @return Set&lt;TaskModelDto&gt;
+     */
+    @GetMapping(&quot;/open/current-user&quot;)
+    public List&lt;TaskModelDto&gt; getOpenTasksForCurrentUser(Principal principal) {
+<span class="nc" id="L46">        return taskService.getOpenTasksForCurrentUser(principal);</span>
+    }
+
+    /**
+     * Get completed tasks for current user.
+     *
+     * @param principal
+     * @return Set&lt;TaskModelDto&gt;
+     */
+    @GetMapping(&quot;/completed/current-user&quot;)
+    public List&lt;TaskModelDto&gt; getCompletedTasksForCurrentUser(Principal principal) {
+<span class="nc" id="L57">        return taskService.getCompletedTasksForCurrentUser(principal);</span>
+    }
+
+    /**
+     * Claim task by current user.
+     *
+     * @param principal
+     * @param taskId
+     * @return
+     */
+    @PostMapping(&quot;/claim/{id}&quot;)
+    public ResponseEntity claimTask(Principal principal, @PathVariable(&quot;id&quot;) Long taskId) {
+<span class="nc" id="L69">        taskService.claimTask(principal, taskId);</span>
+
+<span class="nc" id="L71">        return new ResponseEntity(HttpStatus.OK);</span>
+    }
+
+    /**
+     * Deletes the specified task only if the current user is manager
+     *
+     * @param taskId
+     * @param principal
+     * @return
+     */
+    @DeleteMapping(&quot;/{id}&quot;)
+    public ResponseEntity deleteTaskById(@PathVariable(&quot;id&quot;) Long taskId, Principal principal) throws NotFoundException, IllegalAccessException {
+<span class="nc" id="L83">        taskService.deleteTask(taskId, principal);</span>
+<span class="nc" id="L84">        return new ResponseEntity(HttpStatus.OK);</span>
+    }
+
+    /**
+     * Submit the task only if current user claimed it
+     *
+     * @param principal
+     */
+    @PostMapping(&quot;/submit/{id}&quot;)
+    public ResponseEntity submitTask(Principal principal, @PathVariable(&quot;id&quot;) Long taskId) throws NotFoundException, IllegalAccessException {
+<span class="nc" id="L94">        taskService.submitTask(principal, taskId);</span>
+
+<span class="nc" id="L96">        return new ResponseEntity(HttpStatus.OK);</span>
+    }
+
+    /**
+     * Get open and completed tasks for members of the groups that are managed by principle
+     *
+     * @param principal
+     * @return
+     */
+    @GetMapping(&quot;/my-teams&quot;)
+    public List&lt;TaskModelDto&gt; getMyTeamsTasks(Principal principal) {
+<span class="nc" id="L107">        return taskService.getMyTeamsTasks(principal);</span>
+
+    }
+
+    /**
+     * Filter tasks by group, user, status, and any combination of this 3 attributes
+     *
+     * @param taskFilterDto
+     * @return
+     */
+    @PostMapping(&quot;/filter&quot;)
+    public List&lt;TaskModelDto&gt; filterTasks(@RequestBody TaskFilterDto taskFilterDto) {
+<span class="nc" id="L119">        return taskService.searchTasks(taskFilterDto);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

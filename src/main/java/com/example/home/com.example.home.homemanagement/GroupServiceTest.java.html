@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GroupServiceTest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HomeManagement_SpecTop$AllTests.exec</a> &gt; <a href="index.source.html" class="el_package">com.example.home.homemanagement</a> &gt; <span class="el_source">GroupServiceTest.java</span></div><h1>GroupServiceTest.java</h1><pre class="source lang-java linenums">package com.example.home.homemanagement;
+
+import com.example.home.dtos.GroupDto;
+import com.example.home.dtos.user.UserDto;
+import com.example.home.models.Group;
+import com.example.home.models.UserGroup;
+import com.example.home.repositories.GroupRepository;
+import com.example.home.repositories.UserGroupRepository;
+import com.example.home.repositories.UserRepository;
+import com.example.home.services.GroupService;
+import javassist.NotFoundException;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.*;
+
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+<span class="nc" id="L26">public class GroupServiceTest {</span>
+    @InjectMocks
+    private GroupService groupService;
+
+    @Mock
+    private UserGroupRepository userGroupRepository;
+
+    @Mock
+    private GroupRepository groupRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private Principal principal;
+
+    @Captor
+    private ArgumentCaptor&lt;Set&lt;UserGroup&gt;&gt; userGroupEntityArgumentCaptor;
+
+    @Captor
+    private ArgumentCaptor&lt;Set&lt;UserGroup&gt;&gt; saveUserGroupEntityArgumentCaptor;
+
+    @Before
+    public void initMocks() {
+<span class="nc" id="L50">        MockitoAnnotations.initMocks(this);</span>
+<span class="nc" id="L51">        groupService = new GroupService(groupRepository, userGroupRepository, userRepository);</span>
+<span class="nc" id="L52">    }</span>
+
+    @Test
+    public void remove_all_members() throws NotFoundException {
+<span class="nc" id="L56">        Group group = buildGroup();</span>
+<span class="nc" id="L57">        when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));</span>
+
+<span class="nc" id="L59">        GroupDto groupDto = GroupDto.builder()</span>
+<span class="nc" id="L60">                .userDtoSet(null)</span>
+<span class="nc" id="L61">                .id(1L)</span>
+<span class="nc" id="L62">                .name(&quot;Name&quot;)</span>
+<span class="nc" id="L63">                .build();</span>
+<span class="nc" id="L64">        groupService.createOrUpdateGroup(groupDto, null);</span>
+
+<span class="nc" id="L66">        Assert.assertEquals(new HashSet&lt;&gt;(), group.getUserGroups());</span>
+<span class="nc" id="L67">    }</span>
+
+    @Test
+    public void replace_member() throws NotFoundException {
+<span class="nc" id="L71">        Group group = buildGroup();</span>
+<span class="nc" id="L72">        Set&lt;UserGroup&gt; oldUserGroup = group.getUserGroups();</span>
+<span class="nc" id="L73">        when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));</span>
+
+<span class="nc" id="L75">        GroupDto groupDto = GroupDto.builder()</span>
+<span class="nc" id="L76">                .userDtoSet(List.of(buildUserDto(false, 5L)))</span>
+<span class="nc" id="L77">                .id(1L)</span>
+<span class="nc" id="L78">                .name(&quot;Name&quot;)</span>
+<span class="nc" id="L79">                .build();</span>
+<span class="nc" id="L80">        groupService.createOrUpdateGroup(groupDto, null);</span>
+
+<span class="nc" id="L82">        Mockito.verify(this.userGroupRepository,</span>
+<span class="nc" id="L83">                Mockito.times(1)).deleteAll(userGroupEntityArgumentCaptor.capture());</span>
+<span class="nc" id="L84">        Set&lt;UserGroup&gt; userGroupDeleted = userGroupEntityArgumentCaptor.getValue();</span>
+
+<span class="nc" id="L86">        Mockito.verify(this.userGroupRepository,</span>
+<span class="nc" id="L87">                Mockito.times(1)).saveAll(saveUserGroupEntityArgumentCaptor.capture());</span>
+<span class="nc" id="L88">        Set&lt;UserGroup&gt; userGroupAdded = saveUserGroupEntityArgumentCaptor.getValue();</span>
+
+<span class="nc" id="L90">        Assert.assertEquals(1, userGroupDeleted.size());</span>
+<span class="nc" id="L91">        Assert.assertEquals(oldUserGroup, userGroupDeleted);</span>
+<span class="nc" id="L92">        Assert.assertEquals(Long.valueOf(5), userGroupAdded.stream().findAny().get().getUserId());</span>
+<span class="nc" id="L93">    }</span>
+
+    @Test
+    public void add_member() throws NotFoundException {
+<span class="nc" id="L97">        Group group = new Group();</span>
+
+<span class="nc" id="L99">        when(principal.getName()).thenReturn(&quot;email&quot;);</span>
+<span class="nc" id="L100">        when(groupRepository.save(any())).thenReturn(group);</span>
+<span class="nc" id="L101">        when(userRepository.findIdByEmail(any())).thenReturn(5L);</span>
+
+
+<span class="nc" id="L104">        GroupDto groupDto = GroupDto.builder()</span>
+<span class="nc" id="L105">                .userDtoSet(List.of(buildUserDto(false, 5L)))</span>
+<span class="nc" id="L106">                .name(&quot;Name&quot;)</span>
+<span class="nc" id="L107">                .build();</span>
+<span class="nc" id="L108">        groupService.createOrUpdateGroup(groupDto, principal);</span>
+
+<span class="nc" id="L110">        Mockito.verify(this.userGroupRepository,</span>
+<span class="nc" id="L111">                Mockito.times(1)).saveAll(saveUserGroupEntityArgumentCaptor.capture());</span>
+<span class="nc" id="L112">        Set&lt;UserGroup&gt; userGroupAdded = saveUserGroupEntityArgumentCaptor.getValue();</span>
+
+<span class="nc" id="L114">        Assert.assertEquals(1, userGroupAdded.size());</span>
+<span class="nc" id="L115">    }</span>
+
+    @Test
+    public void update_manager() throws NotFoundException {
+<span class="nc" id="L119">        Group group = buildGroup();</span>
+<span class="nc" id="L120">        when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));</span>
+
+<span class="nc" id="L122">        GroupDto groupDto = GroupDto.builder()</span>
+<span class="nc" id="L123">                .id(1L)</span>
+<span class="nc" id="L124">                .userDtoSet(List.of(buildUserDto(false, 5L)))</span>
+<span class="nc" id="L125">                .name(&quot;Name&quot;)</span>
+<span class="nc" id="L126">                .build();</span>
+<span class="nc" id="L127">        groupService.createOrUpdateGroup(groupDto, null);</span>
+
+<span class="nc" id="L129">        Mockito.verify(this.userGroupRepository,</span>
+<span class="nc" id="L130">                Mockito.times(1)).saveAll(saveUserGroupEntityArgumentCaptor.capture());</span>
+<span class="nc" id="L131">        UserGroup userGroup = saveUserGroupEntityArgumentCaptor.getValue().iterator().next();</span>
+
+<span class="nc" id="L133">        Assert.assertEquals(false, userGroup.isManager());</span>
+<span class="nc" id="L134">    }</span>
+
+    public Group buildGroup(){
+<span class="nc" id="L137">        Set&lt;UserGroup&gt; userGroupSet = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L138">        userGroupSet.add(buildUserGroup());</span>
+<span class="nc" id="L139">        return  Group.builder()</span>
+<span class="nc" id="L140">                .id(1L)</span>
+<span class="nc" id="L141">                .name(&quot;group1&quot;)</span>
+<span class="nc" id="L142">                .userGroups(userGroupSet)</span>
+<span class="nc" id="L143">                .build();</span>
+    }
+
+    public UserGroup buildUserGroup(){
+<span class="nc" id="L147">        return UserGroup.builder()</span>
+<span class="nc" id="L148">                .userId(Long.valueOf(&quot;2&quot;))</span>
+<span class="nc" id="L149">                .groupId(Long.valueOf(1))</span>
+<span class="nc" id="L150">                .isManager(true)</span>
+<span class="nc" id="L151">                .build();</span>
+    }
+
+    public UserDto buildUserDto(boolean isManager, Long id){
+<span class="nc" id="L155">        return UserDto.userDtoBuilder()</span>
+<span class="nc" id="L156">                .isManager(isManager)</span>
+<span class="nc" id="L157">                .id(id)</span>
+<span class="nc" id="L158">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

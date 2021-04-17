@@ -1,0 +1,83 @@
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html id="htmlId">
+<head>
+  <title>Coverage Report :: GroupRepository</title>
+  <style type="text/css">
+    @import "../../.css/coverage.css";
+  </style>
+</head>
+
+<body>
+<div class="header"></div>
+
+<div class="content">
+<div class="breadCrumbs">
+    [ <a href="../../index.html">all classes</a> ]
+    [ <a href="../index.html">com.example.home.repositories</a> ]
+</div>
+
+<h1>Coverage Summary for Class: GroupRepository (com.example.home.repositories)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+</tr>
+  <tr>
+    <td class="name">GroupRepository$MockitoMock$664279320</td>
+  </tr>
+  <tr>
+    <td class="name">GroupRepository$MockitoMock$664279320$auxiliary$aQyblQNo</td>
+  </tr>
+  <tr>
+    <td class="name">GroupRepository$MockitoMock$664279320$auxiliary$cxcvwIp5</td>
+  </tr>
+<tr>
+  <td class="name"><strong>total</strong></td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<div class="sourceCode"><i>1</i>&nbsp;package com.example.home.repositories;
+<i>2</i>&nbsp;
+<i>3</i>&nbsp;import com.example.home.models.Group;
+<i>4</i>&nbsp;import org.springframework.data.jpa.repository.Query;
+<i>5</i>&nbsp;import org.springframework.data.repository.CrudRepository;
+<i>6</i>&nbsp;import org.springframework.data.repository.query.Param;
+<i>7</i>&nbsp;import org.springframework.stereotype.Repository;
+<i>8</i>&nbsp;
+<i>9</i>&nbsp;import java.util.List;
+<i>10</i>&nbsp;import java.util.Set;
+<i>11</i>&nbsp;
+<i>12</i>&nbsp;@Repository
+<i>13</i>&nbsp;public interface GroupRepository extends CrudRepository&lt;Group, Long&gt; {
+<i>14</i>&nbsp;    @Query(&quot;select distinct g from Group g left join fetch UserGroup ug on (g.id = ug.groupId) &quot;)
+<i>15</i>&nbsp;    List&lt;Group&gt; findAll();
+<i>16</i>&nbsp;
+<i>17</i>&nbsp;    @Query(&quot;select g from Group g where g.id in (:groupIds)&quot;)
+<i>18</i>&nbsp;    Set&lt;Group&gt; findByIds(@Param(&quot;groupIds&quot;) Set&lt;Long&gt; groupIds);
+<i>19</i>&nbsp;
+<i>20</i>&nbsp;    List&lt;Group&gt; findAllByCreatedBy(Long userId);
+<i>21</i>&nbsp;
+<i>22</i>&nbsp;    @Query(value = &quot;select g from Group g inner join  g.userGroups ug &quot; +
+<i>23</i>&nbsp;            &quot;where ug.groupId in ( select g2.id from Group as g2 inner join g2.userGroups ug2 &quot; +
+<i>24</i>&nbsp;            &quot;where ug2.userId =:userId and ug.isManager = true) &quot;)
+<i>25</i>&nbsp;    List&lt;Group&gt; findByManager(@Param(&quot;userId&quot;) Long userId);
+<i>26</i>&nbsp;
+<i>27</i>&nbsp;}
+</div>
+</div>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2021-04-17 18:48</div>
+</div>
+</body>
+</html>

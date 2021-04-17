@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TaskServiceShould.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HomeManagement_SpecTop$AllTests.exec</a> &gt; <a href="index.source.html" class="el_package">com.example.home.homemanagement</a> &gt; <span class="el_source">TaskServiceShould.java</span></div><h1>TaskServiceShould.java</h1><pre class="source lang-java linenums">package com.example.home.homemanagement;
+
+import com.example.home.models.Assignee;
+import com.example.home.models.AssigneeMember;
+import com.example.home.models.Task;
+import com.example.home.models.User;
+import com.example.home.repositories.AssigneeMemberRepository;
+import com.example.home.repositories.AssigneeRepository;
+import com.example.home.repositories.TaskRepository;
+import com.example.home.repositories.UserRepository;
+import com.example.home.services.TaskService;
+import com.example.home.services.UserGroupService;
+import com.example.home.services.UserService;
+import com.example.home.services.observable.TaskObservableModel;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.*;
+
+import java.security.Principal;
+import java.util.*;
+
+import static java.util.stream.Collectors.toList;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+<span class="nc" id="L27">public class TaskServiceShould {</span>
+    @InjectMocks
+    private TaskService taskService;
+    @Mock
+    private TaskRepository taskRepository;
+    @Mock
+    private AssigneeRepository assigneeRepository;
+    @Mock
+    private AssigneeMemberRepository assigneeMemberRepository;
+    @InjectMocks
+    private UserGroupService userGroupService;
+    @InjectMocks
+    private UserService userService;
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private Principal principal;
+
+    @Captor
+    private ArgumentCaptor&lt;Task&gt; taskArgumentCaptor;
+    @Captor
+    private ArgumentCaptor&lt;Set&lt;AssigneeMember&gt;&gt; assigneeMemberArgumentCaptor;
+
+
+    @Before
+    public void initMocks() {
+<span class="nc" id="L54">        MockitoAnnotations.initMocks(this);</span>
+<span class="nc" id="L55">        userService = new UserService(null, userRepository, null);</span>
+<span class="nc" id="L56">        taskService = new TaskService(taskRepository, userGroupService, assigneeRepository, assigneeMemberRepository, userService, null, null);</span>
+<span class="nc" id="L57">    }</span>
+
+    /**
+     * Task has user A and group B (that has  user A as a member) as assignees
+     */
+    @Test
+    public void claim_task_with_user_and_group(){
+<span class="nc" id="L64">        Map&lt;Long, TaskObservableModel&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L65">        map.put(1L, new TaskObservableModel());</span>
+
+<span class="nc" id="L67">        when(principal.getName()).thenReturn(&quot;email&quot;);</span>
+<span class="nc" id="L68">        when(userRepository.findByEmail(any())).thenReturn(User.builder()</span>
+<span class="nc" id="L69">                .id(2L)</span>
+<span class="nc" id="L70">                .build());</span>
+
+<span class="nc" id="L72">        when(taskRepository.findByTaskIdEagerlyActive(any())).thenReturn(buildTask());</span>
+
+<span class="nc" id="L74">        taskService.claimTask(principal, 1L);</span>
+
+<span class="nc" id="L76">        Mockito.verify(this.assigneeMemberRepository,</span>
+<span class="nc" id="L77">                Mockito.times(1)).saveAll(assigneeMemberArgumentCaptor.capture());</span>
+<span class="nc" id="L78">        Set&lt;AssigneeMember&gt; assigneeMembers = assigneeMemberArgumentCaptor.getValue();</span>
+
+<span class="nc" id="L80">        Assert.assertEquals(2, assigneeMembers.size());</span>
+
+        //check if user assigneeMember is still active
+<span class="nc" id="L83">        Assert.assertEquals(Long.valueOf(2L), assigneeMembers.stream()</span>
+<span class="nc" id="L84">                .filter(AssigneeMember::isActive)</span>
+<span class="nc" id="L85">                .map(AssigneeMember::getUserId).collect(toList()).get(0));</span>
+
+        //check if group assignee member is deactivated
+<span class="nc" id="L88">        assigneeMembers.remove(assigneeMembers.stream()</span>
+<span class="nc" id="L89">                .filter(AssigneeMember::isActive)</span>
+<span class="nc" id="L90">                .map(AssigneeMember::getUserId).collect(toList()).get(0));</span>
+<span class="nc" id="L91">        Assert.assertFalse(assigneeMembers.iterator().next().isActive());</span>
+
+<span class="nc" id="L93">        Mockito.verify(this.taskRepository,</span>
+<span class="nc" id="L94">                Mockito.times(1)).save(taskArgumentCaptor.capture());</span>
+<span class="nc" id="L95">        Task task = taskArgumentCaptor.getValue();</span>
+
+        //check for claimed by principal
+<span class="nc" id="L98">        Assert.assertEquals(Long.valueOf(2L), task.getClaimedBy());</span>
+<span class="nc" id="L99">    }</span>
+
+    public Optional&lt;Task&gt; buildTask(){
+<span class="nc" id="L102">        Set&lt;AssigneeMember&gt; assigneeMemberSet = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L103">        assigneeMemberSet.add(buildAssigneeMember(2L, null, null));</span>
+<span class="nc" id="L104">        assigneeMemberSet.add(buildAssigneeMember(null, 3L, null));</span>
+
+<span class="nc" id="L106">        return Optional.of(Task.builder()</span>
+<span class="nc" id="L107">                .id(1L)</span>
+<span class="nc" id="L108">                .activeAssignedUsers(Set.of(Assignee.builder()</span>
+<span class="nc" id="L109">                        .activeAssigneeMemberSet(assigneeMemberSet)</span>
+<span class="nc" id="L110">                        .build()))</span>
+<span class="nc" id="L111">                .status(Task.Status.IN_PROGRESS)</span>
+<span class="nc" id="L112">                .build()</span>
+        );
+    }
+
+    public AssigneeMember buildAssigneeMember(Long userId, Long groupId, Long assigneeId){
+<span class="nc" id="L117">        return AssigneeMember.builder()</span>
+<span class="nc" id="L118">                .userId(userId)</span>
+<span class="nc" id="L119">                .groupId(groupId)</span>
+<span class="nc" id="L120">                .active(true)</span>
+<span class="nc" id="L121">                .assigneeId(assigneeId)</span>
+<span class="nc" id="L122">                .build();</span>
+    }
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

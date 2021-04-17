@@ -1,0 +1,240 @@
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html id="htmlId">
+<head>
+  <title>Coverage Report :: GroupService</title>
+  <style type="text/css">
+    @import "../../.css/coverage.css";
+  </style>
+</head>
+
+<body>
+<div class="header"></div>
+
+<div class="content">
+<div class="breadCrumbs">
+    [ <a href="../../index.html">all classes</a> ]
+    [ <a href="../index.html">com.example.home.services</a> ]
+</div>
+
+<h1>Coverage Summary for Class: GroupService (com.example.home.services)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">GroupService</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/ 1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    44.4%
+  </span>
+  <span class="absValue">
+    (4/ 9)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    79.7%
+  </span>
+  <span class="absValue">
+    (55/ 69)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<div class="sourceCode"><i>1</i>&nbsp;package com.example.home.services;
+<i>2</i>&nbsp;
+<i>3</i>&nbsp;import com.example.home.dtos.GroupDto;
+<i>4</i>&nbsp;import com.example.home.dtos.user.UserDto;
+<i>5</i>&nbsp;import com.example.home.models.Group;
+<i>6</i>&nbsp;import com.example.home.models.UserGroup;
+<i>7</i>&nbsp;import com.example.home.repositories.GroupRepository;
+<i>8</i>&nbsp;import com.example.home.repositories.UserGroupRepository;
+<i>9</i>&nbsp;import com.example.home.repositories.UserRepository;
+<i>10</i>&nbsp;import javassist.NotFoundException;
+<i>11</i>&nbsp;import lombok.SneakyThrows;
+<i>12</i>&nbsp;import org.springframework.beans.factory.annotation.Autowired;
+<i>13</i>&nbsp;import org.springframework.stereotype.Service;
+<i>14</i>&nbsp;import org.springframework.transaction.annotation.Transactional;
+<i>15</i>&nbsp;import org.springframework.util.CollectionUtils;
+<i>16</i>&nbsp;import springfox.documentation.spi.service.contexts.SecurityContext;
+<i>17</i>&nbsp;
+<i>18</i>&nbsp;import java.security.Principal;
+<i>19</i>&nbsp;import java.util.*;
+<i>20</i>&nbsp;import java.util.stream.Collectors;
+<i>21</i>&nbsp;
+<i>22</i>&nbsp;import static java.util.stream.Collectors.toMap;
+<i>23</i>&nbsp;
+<i>24</i>&nbsp;@Service
+<i>25</i>&nbsp;public class GroupService {
+<i>26</i>&nbsp;    private final GroupRepository groupRepository;
+<i>27</i>&nbsp;    private final UserGroupRepository userGroupRepository;
+<i>28</i>&nbsp;    private final UserRepository userRepository;
+<i>29</i>&nbsp;
+<i>30</i>&nbsp;    @Autowired
+<b class="fc"><i>31</i>&nbsp;    public GroupService(GroupRepository groupRepository, UserGroupRepository userGroupRepository, UserRepository userRepository){</b>
+<b class="fc"><i>32</i>&nbsp;        this.groupRepository = groupRepository;</b>
+<b class="fc"><i>33</i>&nbsp;        this.userGroupRepository = userGroupRepository;</b>
+<b class="fc"><i>34</i>&nbsp;        this.userRepository = userRepository;</b>
+<b class="fc"><i>35</i>&nbsp;    }</b>
+<i>36</i>&nbsp;
+<i>37</i>&nbsp;    @Transactional(readOnly = true)
+<i>38</i>&nbsp;    public List&lt;Group&gt; getGroups(){
+<b class="nc"><i>39</i>&nbsp;        return groupRepository.findAll();</b>
+<i>40</i>&nbsp;    }
+<i>41</i>&nbsp;
+<i>42</i>&nbsp;    @Transactional(readOnly = true)
+<i>43</i>&nbsp;    public List&lt;Group&gt; getGroupsManagedBYCurrentUser(Principal principal){
+<i>44</i>&nbsp;        //get user
+<b class="nc"><i>45</i>&nbsp;        Long userId = userRepository.findIdByEmail(principal.getName());</b>
+<i>46</i>&nbsp;
+<b class="nc"><i>47</i>&nbsp;        return groupRepository.findByManager(userId);</b>
+<i>48</i>&nbsp;    }
+<i>49</i>&nbsp;
+<i>50</i>&nbsp;    @Transactional(readOnly = true)
+<i>51</i>&nbsp;    public List&lt;Group&gt; getGroupsCreatedByCurrentUser(Principal principal){
+<i>52</i>&nbsp;        //get user
+<b class="nc"><i>53</i>&nbsp;        Long userId = userRepository.findIdByEmail(principal.getName());</b>
+<i>54</i>&nbsp;
+<b class="nc"><i>55</i>&nbsp;        return groupRepository.findAllByCreatedBy(userId);</b>
+<i>56</i>&nbsp;    }
+<i>57</i>&nbsp;
+<i>58</i>&nbsp;    @Transactional
+<i>59</i>&nbsp;    public void deleteGroupById(Long groupId){
+<b class="nc"><i>60</i>&nbsp;        groupRepository.deleteById(groupId);</b>
+<b class="nc"><i>61</i>&nbsp;    }</b>
+<i>62</i>&nbsp;
+<i>63</i>&nbsp;    @Transactional(readOnly = true)
+<i>64</i>&nbsp;    public Set&lt;Group&gt; findGroupsByIds(Set&lt;Long&gt; groupIds){
+<b class="nc"><i>65</i>&nbsp;        return groupRepository.findByIds(groupIds);</b>
+<i>66</i>&nbsp;    }
+<i>67</i>&nbsp;
+<i>68</i>&nbsp;    @Transactional
+<i>69</i>&nbsp;    public void createOrUpdateGroup(GroupDto groupDto, Principal principal) throws NotFoundException {
+<b class="fc"><i>70</i>&nbsp;        Long id = groupDto.getId();</b>
+<i>71</i>&nbsp;        Group group;
+<b class="fc"><i>72</i>&nbsp;        if(null == id){//insert</b>
+<b class="fc"><i>73</i>&nbsp;            Long userId = userRepository.findIdByEmail(principal.getName());</b>
+<i>74</i>&nbsp;
+<b class="fc"><i>75</i>&nbsp;            group = Group.builder()</b>
+<b class="fc"><i>76</i>&nbsp;                    .name(groupDto.getName())</b>
+<b class="fc"><i>77</i>&nbsp;                    .createdBy(userId)</b>
+<b class="fc"><i>78</i>&nbsp;                    .build();</b>
+<b class="fc"><i>79</i>&nbsp;            group = groupRepository.save(group);</b>
+<b class="fc"><i>80</i>&nbsp;        } else {// update</b>
+<b class="fc"><i>81</i>&nbsp;            Optional&lt;Group&gt; groupOptional = groupRepository.findById(id);</b>
+<b class="fc"><i>82</i>&nbsp;            if(groupOptional.isPresent()){</b>
+<b class="fc"><i>83</i>&nbsp;                group = groupOptional.get().setName(groupDto.getName());</b>
+<b class="fc"><i>84</i>&nbsp;                groupRepository.save(group);</b>
+<i>85</i>&nbsp;            } else {
+<b class="nc"><i>86</i>&nbsp;                throw new NotFoundException(&quot;Group with id:&quot; + id + &quot; does not exist&quot;);</b>
+<i>87</i>&nbsp;            }
+<i>88</i>&nbsp;        }
+<i>89</i>&nbsp;
+<b class="fc"><i>90</i>&nbsp;        Map&lt;Long, UserGroup&gt; existingUsers = new HashMap&lt;&gt;();</b>
+<b class="fc"><i>91</i>&nbsp;        if(!CollectionUtils.isEmpty(group.getUserGroups())) {</b>
+<b class="fc"><i>92</i>&nbsp;            existingUsers = group.getUserGroups().stream()</b>
+<b class="fc"><i>93</i>&nbsp;                    .collect(toMap(UserGroup::getUserId, userGroup -&gt; userGroup));</b>
+<i>94</i>&nbsp;        }
+<i>95</i>&nbsp;
+<b class="fc"><i>96</i>&nbsp;        Map&lt;Long, UserDto&gt; newUsers = new HashMap&lt;&gt;();</b>
+<b class="fc"><i>97</i>&nbsp;        if(!CollectionUtils.isEmpty(groupDto.getUserDtoSet())) {</b>
+<b class="fc"><i>98</i>&nbsp;            newUsers = groupDto.getUserDtoSet().stream()</b>
+<b class="fc"><i>99</i>&nbsp;                    .collect(toMap(UserDto::getId, userDto -&gt; userDto));</b>
+<i>100</i>&nbsp;        }
+<i>101</i>&nbsp;
+<b class="fc"><i>102</i>&nbsp;        if(CollectionUtils.isEmpty(newUsers)){//remove all users from groupOptional</b>
+<b class="fc"><i>103</i>&nbsp;            group.setUserGroups(new HashSet&lt;&gt;());//not sure if this deletes all userGroup</b>
+<b class="fc"><i>104</i>&nbsp;            userGroupRepository.deleteByGroupId(group.getId());</b>
+<b class="fc"><i>105</i>&nbsp;            groupRepository.save(group);</b>
+<i>106</i>&nbsp;        } else {
+<b class="fc"><i>107</i>&nbsp;            updateUserGroupLinks(group.getId(), existingUsers, newUsers);</b>
+<i>108</i>&nbsp;        }
+<b class="fc"><i>109</i>&nbsp;    }</b>
+<i>110</i>&nbsp;
+<i>111</i>&nbsp;    public void updateUserGroupLinks(Long groupId, Map&lt;Long, UserGroup&gt; existingUsers, Map&lt;Long, UserDto&gt; newUsers){
+<b class="fc"><i>112</i>&nbsp;        Set&lt;UserGroup&gt; userGroupsToRemove = new HashSet&lt;&gt;();</b>
+<b class="fc"><i>113</i>&nbsp;        Set&lt;UserGroup&gt; userGroupsToUpdate = new HashSet&lt;&gt;();</b>
+<i>114</i>&nbsp;
+<b class="fc"><i>115</i>&nbsp;        Set&lt;Long&gt; newUserIds = newUsers.keySet();</b>
+<b class="fc"><i>116</i>&nbsp;        for(Map.Entry&lt;Long, UserGroup&gt; userGroupEntry : existingUsers.entrySet()){</b>
+<b class="fc"><i>117</i>&nbsp;            UserGroup userGroup = userGroupEntry.getValue();</b>
+<b class="fc"><i>118</i>&nbsp;            Long userId = userGroup.getUserId();</b>
+<i>119</i>&nbsp;
+<b class="fc"><i>120</i>&nbsp;            boolean exists = newUserIds.stream().anyMatch(newUserId -&gt; newUserId.equals(userId));</b>
+<b class="fc"><i>121</i>&nbsp;            if (Boolean.TRUE.equals(exists)){</b>
+<i>122</i>&nbsp;
+<i>123</i>&nbsp;                //update manager on existing connection
+<b class="nc"><i>124</i>&nbsp;                if(newUsers.get(userId).isManager() != userGroup.isManager()) {</b>
+<b class="nc"><i>125</i>&nbsp;                    userGroup.setManager(newUsers.get(userId).isManager());</b>
+<b class="nc"><i>126</i>&nbsp;                    userGroupsToUpdate.add(userGroup);</b>
+<i>127</i>&nbsp;                }
+<i>128</i>&nbsp;
+<b class="nc"><i>129</i>&nbsp;                newUserIds.remove(userId);</b>
+<b class="nc"><i>130</i>&nbsp;                newUsers.remove(userId);</b>
+<i>131</i>&nbsp;            } else {
+<b class="fc"><i>132</i>&nbsp;                userGroupsToRemove.add(userGroup);</b>
+<i>133</i>&nbsp;            }
+<b class="fc"><i>134</i>&nbsp;        }</b>
+<i>135</i>&nbsp;
+<i>136</i>&nbsp;        //delete old connections
+<b class="fc"><i>137</i>&nbsp;        if(!CollectionUtils.isEmpty(userGroupsToRemove)){</b>
+<b class="fc"><i>138</i>&nbsp;            userGroupRepository.deleteAll(userGroupsToRemove);</b>
+<i>139</i>&nbsp;        }
+<i>140</i>&nbsp;
+<i>141</i>&nbsp;        //add new connections
+<b class="fc"><i>142</i>&nbsp;        Set&lt;UserGroup&gt; userGroups = newUsers.values().stream().map(newUser -&gt; {</b>
+<b class="fc"><i>143</i>&nbsp;            return UserGroup.builder()</b>
+<b class="fc"><i>144</i>&nbsp;                    .groupId(groupId)</b>
+<b class="fc"><i>145</i>&nbsp;                    .isManager(newUser.isManager())</b>
+<b class="fc"><i>146</i>&nbsp;                    .userId(newUser.getId())</b>
+<b class="fc"><i>147</i>&nbsp;                    .build();</b>
+<b class="fc"><i>148</i>&nbsp;        }).collect(Collectors.toSet());</b>
+<i>149</i>&nbsp;
+<i>150</i>&nbsp;        //update existing connections
+<b class="fc"><i>151</i>&nbsp;        userGroups.addAll(userGroupsToUpdate);</b>
+<i>152</i>&nbsp;
+<b class="fc"><i>153</i>&nbsp;        if(!CollectionUtils.isEmpty(userGroups)) {</b>
+<b class="fc"><i>154</i>&nbsp;            userGroupRepository.saveAll(userGroups);</b>
+<i>155</i>&nbsp;        }
+<b class="fc"><i>156</i>&nbsp;    }</b>
+<i>157</i>&nbsp;}
+</div>
+</div>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2021-04-17 18:48</div>
+</div>
+</body>
+</html>

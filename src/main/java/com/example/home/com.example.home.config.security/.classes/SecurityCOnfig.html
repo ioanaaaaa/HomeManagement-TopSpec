@@ -1,0 +1,167 @@
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html id="htmlId">
+<head>
+  <title>Coverage Report :: SecurityCOnfig</title>
+  <style type="text/css">
+    @import "../../.css/coverage.css";
+  </style>
+</head>
+
+<body>
+<div class="header"></div>
+
+<div class="content">
+<div class="breadCrumbs">
+    [ <a href="../../index.html">all classes</a> ]
+    [ <a href="../index.html">com.example.home.config.security</a> ]
+</div>
+
+<h1>Coverage Summary for Class: SecurityCOnfig (com.example.home.config.security)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">SecurityCOnfig</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/ 1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/ 4)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/ 12)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<div class="sourceCode"><i>1</i>&nbsp;package com.example.home.config.security;
+<i>2</i>&nbsp;
+<i>3</i>&nbsp;import org.springframework.beans.factory.annotation.Autowired;
+<i>4</i>&nbsp;import org.springframework.context.annotation.Bean;
+<i>5</i>&nbsp;import org.springframework.context.annotation.Configuration;
+<i>6</i>&nbsp;import org.springframework.context.annotation.Import;
+<i>7</i>&nbsp;import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+<i>8</i>&nbsp;import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+<i>9</i>&nbsp;import org.springframework.security.config.annotation.web.builders.WebSecurity;
+<i>10</i>&nbsp;import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+<i>11</i>&nbsp;import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+<i>12</i>&nbsp;import org.springframework.security.config.http.SessionCreationPolicy;
+<i>13</i>&nbsp;import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+<i>14</i>&nbsp;import org.springframework.web.cors.CorsConfiguration;
+<i>15</i>&nbsp;import org.springframework.web.cors.CorsConfigurationSource;
+<i>16</i>&nbsp;import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+<i>17</i>&nbsp;
+<i>18</i>&nbsp;import javax.servlet.http.HttpServletResponse;
+<i>19</i>&nbsp;import java.util.Arrays;
+<i>20</i>&nbsp;
+<i>21</i>&nbsp;@Configuration
+<i>22</i>&nbsp;@EnableWebSecurity
+<i>23</i>&nbsp;//@Import(SwaggerConfig.class)
+<b class="nc"><i>24</i>&nbsp;public class SecurityCOnfig extends WebSecurityConfigurerAdapter {</b>
+<i>25</i>&nbsp;
+<b class="nc"><i>26</i>&nbsp;    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();</b>
+<i>27</i>&nbsp;
+<i>28</i>&nbsp;//    @Autowired
+<i>29</i>&nbsp;//    private CustomUserDetailsService userDetailsService;
+<i>30</i>&nbsp;//
+<i>31</i>&nbsp;//    @Override
+<i>32</i>&nbsp;//    protected void configure(final AuthenticationManagerBuilder auth) throws Exception {
+<i>33</i>&nbsp;//        auth
+<i>34</i>&nbsp;//                .userDetailsService(userDetailsService)
+<i>35</i>&nbsp;//                .passwordEncoder(passwordEncoder);
+<i>36</i>&nbsp;//    }
+<i>37</i>&nbsp;//
+<i>38</i>&nbsp;//    @Override
+<i>39</i>&nbsp;//    protected void configure(HttpSecurity http) throws Exception {
+<i>40</i>&nbsp;//        http
+<i>41</i>&nbsp;//                .cors()
+<i>42</i>&nbsp;//                .and().
+<i>43</i>&nbsp;//                csrf().disable()
+<i>44</i>&nbsp;//                .authorizeRequests()
+<i>45</i>&nbsp;//                .antMatchers(&quot;/api/users/login&quot;).permitAll()
+<i>46</i>&nbsp;//                .antMatchers(&quot;/api/users/register&quot;).permitAll()
+<i>47</i>&nbsp;//                .anyRequest().authenticated()
+<i>48</i>&nbsp;//                .and()
+<i>49</i>&nbsp;//                .exceptionHandling()
+<i>50</i>&nbsp;//                .authenticationEntryPoint(((req, res, e) -&gt; res.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
+<i>51</i>&nbsp;//                .and()
+<i>52</i>&nbsp;//                .addFilter(new ApiJWTAuthenticationFilter(authenticationManager()))
+<i>53</i>&nbsp;//                .addFilter(new ApiJWTAuthorizationFilter(authenticationManager()))
+<i>54</i>&nbsp;//                .sessionManagement()
+<i>55</i>&nbsp;//                .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+<i>56</i>&nbsp;//    }
+<i>57</i>&nbsp;
+<i>58</i>&nbsp;    @Bean
+<i>59</i>&nbsp;    CorsConfigurationSource corsConfigurationSource() {
+<b class="nc"><i>60</i>&nbsp;        CorsConfiguration configuration = new CorsConfiguration();</b>
+<b class="nc"><i>61</i>&nbsp;        configuration.setAllowedOrigins(Arrays.asList(&quot;*&quot;));</b>
+<b class="nc"><i>62</i>&nbsp;        configuration.setAllowedHeaders(Arrays.asList(&quot;*&quot;));</b>
+<b class="nc"><i>63</i>&nbsp;        configuration.setAllowedMethods(Arrays.asList(&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;OPTIONS&quot;));</b>
+<b class="nc"><i>64</i>&nbsp;        configuration.setAllowCredentials(true);</b>
+<b class="nc"><i>65</i>&nbsp;        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();</b>
+<b class="nc"><i>66</i>&nbsp;        source.registerCorsConfiguration(&quot;/**&quot;, configuration);</b>
+<b class="nc"><i>67</i>&nbsp;        return source;</b>
+<i>68</i>&nbsp;    }
+<i>69</i>&nbsp;
+<i>70</i>&nbsp;    @Bean
+<i>71</i>&nbsp;    public BCryptPasswordEncoder bCryptPasswordEncoder() {
+<b class="nc"><i>72</i>&nbsp;        return new BCryptPasswordEncoder();</b>
+<i>73</i>&nbsp;    }
+<i>74</i>&nbsp;
+<i>75</i>&nbsp;    @Override
+<i>76</i>&nbsp;    public void configure(WebSecurity web) throws Exception {
+<b class="nc"><i>77</i>&nbsp;        web.ignoring().antMatchers(&quot;/v2/api-docs&quot;,</b>
+<i>78</i>&nbsp;                &quot;/configuration/ui&quot;,
+<i>79</i>&nbsp;                &quot;/swagger-resources/**&quot;,
+<i>80</i>&nbsp;                &quot;/configuration/security&quot;,
+<i>81</i>&nbsp;                &quot;/swagger-ui.html&quot;,
+<i>82</i>&nbsp;                &quot;/webjars/**&quot;);
+<i>83</i>&nbsp;    }
+<i>84</i>&nbsp;}
+</div>
+</div>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2021-04-17 18:48</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,543 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TaskService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HomeManagement_SpecTop$AllTests.exec</a> &gt; <a href="index.source.html" class="el_package">com.example.home.services</a> &gt; <span class="el_source">TaskService.java</span></div><h1>TaskService.java</h1><pre class="source lang-java linenums">package com.example.home.services;
+
+import com.example.home.dtos.GroupDto;
+import com.example.home.dtos.MemberDto;
+import com.example.home.dtos.tasks.CreateTaskDto;
+import com.example.home.dtos.tasks.TaskFilterDto;
+import com.example.home.dtos.tasks.TaskModelDto;
+import com.example.home.dtos.tasks.TaskSearchFilter;
+import com.example.home.dtos.user.UserDto;
+import com.example.home.models.*;
+import com.example.home.repositories.AssigneeMemberRepository;
+import com.example.home.repositories.AssigneeRepository;
+import com.example.home.repositories.TaskRepository;
+import com.example.home.services.observable.ManagerObserver;
+import com.example.home.services.observable.TaskObservable;
+import com.example.home.services.observable.TaskObservableModel;
+import com.example.home.services.states.CreatedState;
+import com.example.home.services.states.InProgressState;
+import javassist.NotFoundException;
+import lombok.SneakyThrows;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+
+import java.security.Principal;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toSet;
+
+@Service
+public class TaskService {
+
+    private final TaskRepository taskRepository;
+    private final UserGroupService userGroupService;
+    private final AssigneeRepository assigneeRepository;
+    private final AssigneeMemberRepository assigneeMemberRepository;
+    private final UserService userService;
+    private final GroupService groupService;
+    private final EmailService emailService;
+    private final Map&lt;Long, TaskObservable&gt; taskObservableMap;
+
+    @Autowired
+<span class="fc" id="L45">    public TaskService(TaskRepository taskRepository, UserGroupService userGroupService, AssigneeRepository assigneeRepository, AssigneeMemberRepository assigneeMemberRepository, UserService userService, GroupService groupService, EmailService emailService) {</span>
+<span class="fc" id="L46">        this.taskRepository = taskRepository;</span>
+<span class="fc" id="L47">        this.userGroupService = userGroupService;</span>
+<span class="fc" id="L48">        this.assigneeRepository = assigneeRepository;</span>
+<span class="fc" id="L49">        this.assigneeMemberRepository = assigneeMemberRepository;</span>
+<span class="fc" id="L50">        this.userService = userService;</span>
+<span class="fc" id="L51">        this.groupService = groupService;</span>
+<span class="fc" id="L52">        this.emailService = emailService;</span>
+<span class="fc" id="L53">        this.taskObservableMap = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L54">    }</span>
+
+    /**
+     * Get open and completed tasks for members of the groups that are managed by principle
+     *
+     * @param principal
+     * @return
+     */
+    @Transactional(readOnly = true)
+    public List&lt;TaskModelDto&gt; getMyTeamsTasks(Principal principal) {
+        //get user
+<span class="nc" id="L65">        User user = userService.getByEmail(principal.getName());</span>
+
+<span class="nc" id="L67">        Set&lt;Long&gt; groupIds = userGroupService.getGroupIdsManagedByPrinciple(user.getId());</span>
+
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (CollectionUtils.isEmpty(groupIds))</span>
+<span class="nc" id="L70">            return null;</span>
+
+<span class="nc" id="L72">        List&lt;Task&gt; tasks = taskRepository.findByActiveAssignedUsers_activeAssigneeMemberSet_groupIdIn(groupIds);</span>
+
+<span class="nc" id="L74">        List&lt;TaskModelDto&gt; taskModelDtos = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        for (Task task : tasks) {</span>
+<span class="nc" id="L76">            TaskModelDto taskModelDto = convertToModel(task);</span>
+
+<span class="nc" id="L78">            taskModelDtos.add(taskModelDto);</span>
+<span class="nc" id="L79">        }</span>
+
+<span class="nc" id="L81">        return taskModelDtos;</span>
+
+    }
+
+    /**
+     * Deletes the specified task only if the current user is manager
+     *
+     * @param id
+     */
+    @Transactional
+    public void deleteTask(Long id, Principal principal) throws IllegalAccessException, NotFoundException {
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        if (null == id) {</span>
+<span class="nc" id="L93">            throw new IllegalAccessException(&quot;The task with id&quot; + id + &quot; does not exist!&quot;);</span>
+        }
+
+<span class="nc" id="L96">        Optional&lt;Task&gt; taskOptional = taskRepository.findById(id);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        if (!taskOptional.isPresent()) {</span>
+<span class="nc" id="L98">            throw new NotFoundException(&quot;The task with id &quot; + id + &quot; was not found!&quot;);</span>
+        }
+
+        //check it the principal is manager in order to delete the task
+<span class="nc bnc" id="L102" title="All 2 branches missed.">        if (Boolean.FALSE.equals(checkForManager(taskOptional.get(), principal.getName()))) {</span>
+<span class="nc" id="L103">            throw new IllegalAccessException(&quot;You can not delete this task because you are not a manager&quot;);</span>
+        }
+
+<span class="nc" id="L106">        Set&lt;Assignee&gt; assignees = taskOptional.get().getAssignedUsers();</span>
+<span class="nc" id="L107">        Set&lt;Long&gt; assigneeIds = assignees.stream().map(Assignee::getId).collect(toSet());</span>
+<span class="nc" id="L108">        Set&lt;Long&gt; assigneeMembers = assignees.stream().map(Assignee::getAssigneeMemberSet)</span>
+<span class="nc" id="L109">                .flatMap(list -&gt; list.stream())</span>
+<span class="nc" id="L110">                .map(AssigneeMember::getId)</span>
+<span class="nc" id="L111">                .collect(Collectors.toSet());</span>
+
+<span class="nc" id="L113">        assigneeMemberRepository.deleteAllByIdIn(assigneeMembers);</span>
+<span class="nc" id="L114">        assigneeRepository.deleteAllByIdIn(assigneeIds);</span>
+<span class="nc" id="L115">        taskRepository.delete(taskOptional.get());</span>
+
+<span class="nc" id="L117">    }</span>
+
+    //la reassign task trebuie sa setez si claim by cu null;
+//    public void reassignTask(){
+//
+//    }
+
+    @Transactional
+    public void submitTask(Principal principal, Long taskId) throws IllegalAccessException, NotFoundException {
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">        if (null == taskId) {</span>
+<span class="nc" id="L127">            throw new IllegalAccessException(&quot;You must provide a task id in order to submit the task!&quot;);</span>
+        }
+
+        //get user
+<span class="fc" id="L131">        User user = userService.getByEmail(principal.getName());</span>
+
+<span class="fc" id="L133">        Optional&lt;Task&gt; optionalTask = taskRepository.findByTaskIdEagerlyActive(taskId);</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">        if (!optionalTask.isPresent()) {</span>
+<span class="nc" id="L135">            throw new NotFoundException(&quot;The task with id &quot; + taskId + &quot; was not found!&quot;);</span>
+        }
+
+<span class="fc" id="L138">        Task task = optionalTask.get();</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        if (Task.Status.COMPLETED.name().equalsIgnoreCase(task.getStatus().name())) {</span>
+<span class="fc" id="L140">            throw new IllegalAccessException(&quot;The task was completed!&quot;);</span>
+        }
+
+<span class="pc bpc" id="L143" title="1 of 4 branches missed.">        if (null == task.getClaimedBy() || null == task.getClaimedByUser()) {</span>
+<span class="fc" id="L144">            throw new IllegalAccessException(&quot;The task was not claimed!&quot;);</span>
+        }
+
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        if (!user.getId().equals(task.getClaimedBy())) {</span>
+<span class="fc" id="L148">            throw new IllegalAccessException(&quot;Tou did not claimed this task!&quot;);</span>
+        }
+
+<span class="fc" id="L151">        task.setStatus(Task.Status.COMPLETED);</span>
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">        if(null != task.getState()) {</span>
+<span class="nc" id="L153">            task.getState().next(task);</span>
+        }
+
+<span class="fc" id="L156">        taskRepository.save(task);</span>
+<span class="fc" id="L157">    }</span>
+
+<span class="pc" id="L159">    @SneakyThrows</span>
+    @Transactional
+    public void claimTask(Principal principal, Long taskId) {
+<span class="pc bpc" id="L162" title="1 of 2 branches missed.">        if (null == taskId) {</span>
+<span class="nc" id="L163">            throw new IllegalAccessException(&quot;You must provide a task id in order to claim the task!&quot;);</span>
+        }
+
+        //get user
+<span class="fc" id="L167">        User user = userService.getByEmail(principal.getName());</span>
+
+<span class="fc" id="L169">        Optional&lt;Task&gt; optionalTask = taskRepository.findByTaskIdEagerlyActive(taskId);</span>
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">        if (!optionalTask.isPresent()) {</span>
+<span class="nc" id="L171">            throw new NotFoundException(&quot;The task with id &quot; + taskId + &quot; was not found!&quot;);</span>
+        }
+
+<span class="fc" id="L174">        Task task = optionalTask.get();</span>
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">        if (Task.Status.COMPLETED.name().equalsIgnoreCase(task.getStatus().name())) {</span>
+<span class="nc" id="L176">            throw new IllegalAccessException(&quot;The task was completed!&quot;);</span>
+        }
+
+<span class="pc bpc" id="L179" title="2 of 4 branches missed.">        if (null != task.getClaimedBy() || null != task.getClaimedByUser()) {</span>
+<span class="nc" id="L180">            throw new IllegalAccessException(&quot;The task was already claimed!&quot;);</span>
+        }
+
+<span class="fc" id="L183">        task.setClaimedBy(user.getId());</span>
+<span class="fc" id="L184">        task.setStatus(Task.Status.IN_PROGRESS);</span>
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">        if(null != task.getState()) {</span>
+<span class="nc" id="L186">            task.getState().next(task);</span>
+        }
+
+<span class="fc" id="L189">        Set&lt;Assignee&gt; taskAssignees = task.getActiveAssignedUsers();</span>
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">        if (taskAssignees.size() &gt; 1) {</span>
+<span class="nc" id="L191">            throw new IllegalAccessException(&quot;The task has more than 1 assignee!&quot;);</span>
+        }
+
+<span class="fc" id="L194">        AssigneeMember foundAssigneeMember = null;</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        for (AssigneeMember assigneeMember : taskAssignees.iterator().next().getActiveAssigneeMemberSet()) {</span>
+            //we can have use A as assignee and group that contains user A so we deactivate the group
+<span class="pc bpc" id="L197" title="1 of 4 branches missed.">            if (user.getId().equals(assigneeMember.getUserId()) &amp;&amp; null == foundAssigneeMember) {</span>
+<span class="fc" id="L198">                foundAssigneeMember = assigneeMember;</span>
+<span class="pc bpc" id="L199" title="2 of 4 branches missed.">            } else if (null != foundAssigneeMember || !user.getId().equals(assigneeMember.getUserId())) {</span>
+<span class="fc" id="L200">                assigneeMember.setActive(false);</span>
+<span class="fc" id="L201">                continue;</span>
+            }
+
+<span class="pc bpc" id="L204" title="3 of 4 branches missed.">            if (null != assigneeMember.getGroupId() &amp;&amp; null != foundAssigneeMember) {</span>
+<span class="nc" id="L205">                Set&lt;Long&gt; userIds = userGroupService.getUserIdsForGroup(assigneeMember.getGroupId());</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">                if (userIds.contains(user.getId())) {</span>
+<span class="nc" id="L207">                    foundAssigneeMember = assigneeMember;</span>
+                } else {
+<span class="nc" id="L209">                    assigneeMember.setActive(false);</span>
+                }
+            }
+<span class="fc" id="L212">        }</span>
+
+<span class="fc" id="L214">        assigneeMemberRepository.saveAll(taskAssignees.iterator().next().getActiveAssigneeMemberSet());</span>
+<span class="fc" id="L215">        taskRepository.save(task);</span>
+
+        //send notification with task updated to managers
+<span class="fc" id="L218">        sendTaskUpdatedToManagers(user, taskId, task.getTitle());</span>
+<span class="fc" id="L219">    }</span>
+
+    public void sendTaskUpdatedToManagers(User user, Long taskId, String title){
+<span class="fc" id="L222">        TaskObservableModel taskObservableModel = new TaskObservableModel(TaskObservableModel.Action.CLAIM, user, taskId, title);</span>
+
+<span class="fc" id="L224">        TaskObservable taskObservable = taskObservableMap.get(taskId);</span>
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">        if(null != taskObservable) {</span>
+<span class="nc" id="L226">            taskObservable.setTaskObservableModel(taskObservableModel);</span>
+        }
+<span class="fc" id="L228">    }</span>
+
+    @Transactional
+    public List&lt;TaskModelDto&gt; getAllTasks() {
+<span class="nc" id="L232">        Set&lt;Task&gt; tasks = taskRepository.findAll();</span>
+
+<span class="nc" id="L234">        List&lt;TaskModelDto&gt; taskModelDtos = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">        for (Task task : tasks) {</span>
+<span class="nc" id="L236">            TaskModelDto taskModelDto = convertToModel(task);</span>
+
+<span class="nc" id="L238">            taskModelDtos.add(taskModelDto);</span>
+<span class="nc" id="L239">        }</span>
+
+<span class="nc" id="L241">        return taskModelDtos;</span>
+    }
+
+    /**
+     * Get open tasks for current user.
+     * returns also the tasks that are assigned to groups to which the user belongs.
+     *
+     * @param principal
+     * @return Set&lt;TaskModelDto&gt;
+     */
+    @Transactional
+    public List&lt;TaskModelDto&gt; getOpenTasksForCurrentUser(Principal principal) {
+        //get user
+<span class="nc" id="L254">        User user = userService.getByEmail(principal.getName());</span>
+        //get groups for current user
+<span class="nc" id="L256">        Set&lt;Long&gt; groupIds = userGroupService.getGroupsIdsForUser(user.getId());</span>
+
+<span class="nc" id="L258">        Set&lt;Task&gt; tasks = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L259" title="All 2 branches missed.">        if(CollectionUtils.isEmpty(groupIds)){</span>
+<span class="nc" id="L260">            tasks = taskRepository.findAllActiveForUser(user.getId());</span>
+        } else {
+<span class="nc" id="L262">            tasks = taskRepository.findAllActiveForUser(user.getId(), groupIds);</span>
+        }
+<span class="nc" id="L264">        Set&lt;Task&gt; claimedTasks = taskRepository.findAllTaskClaimed(user.getId());</span>
+<span class="nc" id="L265">        tasks.addAll(claimedTasks);</span>
+
+
+<span class="nc" id="L268">        List&lt;TaskModelDto&gt; taskModelDtos = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">        for (Task task : tasks) {</span>
+<span class="nc" id="L270">            TaskModelDto taskModelDto = convertToModel(task);</span>
+
+<span class="nc" id="L272">            taskModelDtos.add(taskModelDto);</span>
+<span class="nc" id="L273">        }</span>
+
+<span class="nc" id="L275">        return taskModelDtos;</span>
+    }
+
+    /**
+     * Get completed tasks for current user.
+     *
+     * @param principal
+     * @return Set&lt;TaskModelDto&gt;
+     */
+    @Transactional
+    public List&lt;TaskModelDto&gt; getCompletedTasksForCurrentUser(Principal principal) {
+        //get user
+<span class="nc" id="L287">        User user = userService.getByEmail(principal.getName());</span>
+
+<span class="nc" id="L289">        Set&lt;Task&gt; tasks = taskRepository.findAllCompletedForUser(user.getId());</span>
+<span class="nc" id="L290">        Set&lt;Task&gt; tasksClaimed = taskRepository.findAllTaskClaimedCompleted(user.getId());</span>
+<span class="nc" id="L291">        tasks.addAll(tasksClaimed);</span>
+
+<span class="nc" id="L293">        List&lt;TaskModelDto&gt; taskModelDtos = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L294" title="All 2 branches missed.">        for (Task task : tasks) {</span>
+<span class="nc" id="L295">            TaskModelDto taskModelDto = convertToModel(task);</span>
+
+<span class="nc" id="L297">            taskModelDtos.add(taskModelDto);</span>
+<span class="nc" id="L298">        }</span>
+
+<span class="nc" id="L300">        return taskModelDtos;</span>
+    }
+
+    @Transactional(readOnly = true)
+    public TaskModelDto convertToModel(Task task) {
+<span class="nc" id="L305">        TaskModelDto taskModelDto = new TaskModelDto(task);</span>
+
+        //if the task was not claimed yet then get all the assignees
+<span class="nc bnc" id="L308" title="All 2 branches missed.">        if (null == task.getClaimedBy()) {</span>
+<span class="nc" id="L309">            Set&lt;AssigneeMember&gt; assigneeMembers = task.getActiveAssignedUsers().iterator().next().getActiveAssigneeMemberSet();</span>
+<span class="nc" id="L310">            Set&lt;Long&gt; userIds = assigneeMembers.stream().map(AssigneeMember::getUserId).collect(Collectors.toSet());</span>
+<span class="nc" id="L311">            Set&lt;Long&gt; groupIds = assigneeMembers.stream().map(AssigneeMember::getGroupId).collect(Collectors.toSet());</span>
+
+<span class="nc bnc" id="L313" title="All 2 branches missed.">            if (!CollectionUtils.isEmpty(userIds)) {</span>
+<span class="nc" id="L314">                Map&lt;User, Boolean&gt; users = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L315">                userService.findUsersByIds(userIds).forEach(user -&gt; {</span>
+<span class="nc" id="L316">                    users.put(user, false);</span>
+<span class="nc" id="L317">                });</span>
+
+<span class="nc" id="L319">                taskModelDto.setUsers(UserDto.toDtos(users));</span>
+            }
+
+<span class="nc bnc" id="L322" title="All 2 branches missed.">            if (!CollectionUtils.isEmpty(groupIds)) {</span>
+<span class="nc" id="L323">                List&lt;Group&gt; groups = new ArrayList&lt;&gt;(groupService.findGroupsByIds(groupIds));</span>
+
+<span class="nc" id="L325">                taskModelDto.setGroups(GroupDto.toDtos(groups));</span>
+            }
+        }
+
+<span class="nc" id="L329">        return taskModelDto;</span>
+    }
+
+<span class="fc" id="L332">    @SneakyThrows</span>
+    @Transactional
+    public void createOrEditTask(CreateTaskDto taskDto, Principal principal) {
+<span class="fc bfc" id="L335" title="All 2 branches covered.">        if (null == taskDto.getId()) {// create</span>
+<span class="fc bfc" id="L336" title="All 4 branches covered.">            if (CollectionUtils.isEmpty(taskDto.getGroups()) &amp;&amp; CollectionUtils.isEmpty(taskDto.getUsers())) {</span>
+<span class="fc" id="L337">                throw new IllegalAccessException(&quot;You do not have users or groups assigned to this task!&quot;);</span>
+            }
+
+<span class="fc" id="L340">            Task task = new Task();</span>
+<span class="fc" id="L341">            task.setContent(taskDto.getContent());</span>
+<span class="fc" id="L342">            task.setTitle(taskDto.getTitle());</span>
+<span class="fc" id="L343">            task.setCategory(taskDto.getCategory());</span>
+
+            //autoclaim task if has only one user assigned
+<span class="pc bpc" id="L346" title="2 of 6 branches missed.">            if (CollectionUtils.isEmpty(taskDto.getGroups()) &amp;&amp; !CollectionUtils.isEmpty(taskDto.getUsers()) &amp;&amp; taskDto.getUsers().size() == 1) {</span>
+<span class="fc" id="L347">                task.setClaimedBy(taskDto.getUsers().iterator().next().getId());</span>
+<span class="fc" id="L348">                task.setState(new InProgressState());</span>
+<span class="fc" id="L349">                task.setStatus(Task.Status.IN_PROGRESS);</span>
+            } else {
+<span class="fc" id="L351">                task.setStatus(Task.Status.CREATED);</span>
+<span class="fc" id="L352">                task.setState(new CreatedState());</span>
+            }
+
+<span class="fc" id="L355">            task = taskRepository.save(task);</span>
+
+<span class="fc" id="L357">            this.addTaskAssignees(task.getId(), taskDto.getUsers(), taskDto.getGroups());</span>
+
+            //add observers
+<span class="fc bfc" id="L360" title="All 2 branches covered.">            if(!CollectionUtils.isEmpty(taskDto.getGroups())) {</span>
+<span class="fc" id="L361">                Set&lt;Long&gt; groupIds = taskDto.getGroups().stream().map(MemberDto::getId).collect(toSet());</span>
+<span class="fc" id="L362">                addObservers(groupIds, task);</span>
+            }
+
+            //send email notification
+<span class="fc" id="L366">            this.sendEmailNotifications( taskDto.getUsers(), taskDto.getGroups(), task);</span>
+
+<span class="fc" id="L368">        } else {// edit task by manager</span>
+<span class="fc" id="L369">            Optional&lt;Task&gt; optionalTask = taskRepository.findByTaskIdEagerlyActive(taskDto.getId());</span>
+<span class="pc bpc" id="L370" title="1 of 2 branches missed.">            if (!optionalTask.isPresent()) {</span>
+<span class="nc" id="L371">                throw new NotFoundException(&quot;A task with id:&quot; + taskDto.getId() + &quot; does not exist!&quot;);</span>
+            }
+
+<span class="fc" id="L374">            Task task = optionalTask.get();</span>
+<span class="fc" id="L375">            String managerEmail = principal.getName();</span>
+
+            //check it the principal is manager in order to edit the task
+<span class="pc bpc" id="L378" title="1 of 2 branches missed.">            if (Boolean.FALSE.equals(checkForManager(task, managerEmail))) {</span>
+<span class="fc" id="L379">                throw new IllegalAccessException(&quot;You can not edit this task because you are not a manager&quot;);</span>
+            }
+
+<span class="nc" id="L382">            task.setCategory(taskDto.getCategory());</span>
+<span class="nc" id="L383">            task.setContent(taskDto.getContent());</span>
+<span class="nc" id="L384">            task.setTitle(taskDto.getTitle());</span>
+
+<span class="nc" id="L386">            taskRepository.save(task);</span>
+
+            //remove old assignees
+<span class="nc" id="L389">            assigneeMemberRepository.deleteAll(task.getAssignedUsers().iterator().next().getAssigneeMemberSet());</span>
+<span class="nc" id="L390">            assigneeRepository.delete(task.getAssignedUsers().iterator().next());</span>
+
+            //add new assignees
+<span class="nc" id="L393">            this.addTaskAssignees(task.getId(), taskDto.getUsers(), taskDto.getGroups());</span>
+        }
+<span class="fc" id="L395">    }</span>
+
+    public void addObservers(Set&lt;Long&gt; groupIds, Task task){
+<span class="fc" id="L398">        Set&lt;String&gt; managerEmails = getManagersForGroupsAndUserAssignedToTask(groupIds);</span>
+
+<span class="fc" id="L400">        TaskObservable observable = new TaskObservable();</span>
+<span class="fc" id="L401">        managerEmails.forEach(email -&gt; {</span>
+<span class="nc" id="L402">            ManagerObserver observer = new ManagerObserver(emailService);</span>
+<span class="nc" id="L403">            observer.setEmail(email);</span>
+<span class="nc" id="L404">            observable.addObserver(observer);</span>
+<span class="nc" id="L405">        });</span>
+
+<span class="pc bpc" id="L407" title="1 of 2 branches missed.">        if(!CollectionUtils.isEmpty(managerEmails)) {</span>
+<span class="nc" id="L408">            taskObservableMap.put(task.getId(), observable);</span>
+        }
+
+<span class="fc" id="L411">    }</span>
+
+
+    public void sendEmailNotifications(Set&lt;MemberDto&gt; users, Set&lt;MemberDto&gt; groups, Task task){
+<span class="fc" id="L415">        Set&lt;Long&gt; userIds = new HashSet&lt;&gt;();</span>
+
+<span class="fc bfc" id="L417" title="All 2 branches covered.">        if(!CollectionUtils.isEmpty(users)){</span>
+<span class="fc" id="L418">            userIds = users.stream().map(MemberDto::getId).collect(toSet());</span>
+        }
+
+<span class="fc bfc" id="L421" title="All 2 branches covered.">        if(!CollectionUtils.isEmpty(groups)) {</span>
+<span class="fc" id="L422">            Set&lt;Long&gt; userIdsFromGroups = userGroupService.getUserIdsForGroupIds(groups.stream().map(MemberDto::getId).collect(toSet()));</span>
+<span class="fc" id="L423">            userIds.addAll(userIdsFromGroups);</span>
+        }
+
+<span class="fc bfc" id="L426" title="All 2 branches covered.">        if(!CollectionUtils.isEmpty(userIds)) {</span>
+<span class="fc" id="L427">            List&lt;String&gt; emails = userService.findUsersEmailsByIds(userIds);</span>
+
+<span class="pc" id="L429">            emails.forEach(email -&gt; emailService.sendAssignmentTaskEmail(email, task));</span>
+        }
+<span class="fc" id="L431">    }</span>
+
+    public Set&lt;AssigneeMember&gt; getActiveAssignees(Task task) {
+<span class="fc" id="L434">        Assignee taskAssignee = null;</span>
+<span class="pc bpc" id="L435" title="1 of 2 branches missed.">        if(CollectionUtils.isEmpty(task.getActiveAssignedUsers())) {</span>
+<span class="nc" id="L436">            Optional&lt;Task&gt; task2 = taskRepository.findByTaskIdEagerlyActive(task.getId());</span>
+<span class="nc bnc" id="L437" title="All 2 branches missed.">            if(task2.isPresent()){</span>
+<span class="nc" id="L438">                taskAssignee = task.getActiveAssignedUsers().iterator().next();</span>
+            }
+<span class="nc" id="L440">        } else {</span>
+<span class="fc" id="L441">            taskAssignee = task.getActiveAssignedUsers().iterator().next();</span>
+        }
+<span class="fc" id="L443">        return taskAssignee.getActiveAssigneeMemberSet();</span>
+    }
+
+    /**
+     * Check if the given user email is manager for given groups
+     * @param task
+     * @param principalEmail
+     * @return
+     */
+    private boolean checkForManager(Task task, String principalEmail) {
+<span class="fc" id="L453">        Set&lt;AssigneeMember&gt; assigneeMembers = getActiveAssignees(task);</span>
+<span class="fc" id="L454">        Set&lt;Long&gt; groupIds = assigneeMembers.stream().map(AssigneeMember::getGroupId).collect(toSet());</span>
+<span class="pc bpc" id="L455" title="1 of 2 branches missed.">        if (!CollectionUtils.isEmpty(groupIds)) {</span>
+<span class="fc" id="L456">            return userGroupService.checkForManager(groupIds, principalEmail);</span>
+        }
+
+<span class="nc" id="L459">        return false;</span>
+    }
+
+
+    /**
+     //     * Gets the manager emails for groups that the user that claimed the tasks belong and that specified groups were assigned to task
+     //     */
+    private Set&lt;String&gt; getManagersForGroupsAndUserAssignedToTask(Set&lt;Long&gt; groupIds) {
+<span class="fc" id="L467">        Set&lt;String&gt; managersEmails = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L468" title="1 of 2 branches missed.">        if (!CollectionUtils.isEmpty(groupIds)) {</span>
+<span class="fc" id="L469">            managersEmails = userGroupService.getManagersForUserThatBelongToGroups(groupIds);</span>
+        }
+
+<span class="fc" id="L472">        return managersEmails;</span>
+    }
+
+    @Transactional
+    public void addTaskAssignees(Long taskId, Set&lt;MemberDto&gt; users, Set&lt;MemberDto&gt; groups) {
+        //create assignee
+<span class="fc" id="L478">        Assignee assignee = new Assignee();</span>
+<span class="fc" id="L479">        assignee.setTaskId(taskId);</span>
+<span class="fc" id="L480">        assignee.setActive(true);</span>
+
+<span class="fc" id="L482">        assignee = assigneeRepository.save(assignee);</span>
+
+        //create assignee members
+<span class="fc" id="L485">        Set&lt;AssigneeMember&gt; assigneeMembers = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L486" title="All 2 branches covered.">        if (!CollectionUtils.isEmpty(users)) {</span>
+<span class="fc bfc" id="L487" title="All 2 branches covered.">            for (MemberDto userMember : users) {</span>
+<span class="fc" id="L488">                assigneeMembers.add(AssigneeMember.builder()</span>
+<span class="fc" id="L489">                        .active(true)</span>
+<span class="fc" id="L490">                        .userId(userMember.getId())</span>
+<span class="fc" id="L491">                        .assigneeId(assignee.getId())</span>
+<span class="fc" id="L492">                        .build());</span>
+<span class="fc" id="L493">            }</span>
+        }
+
+<span class="fc bfc" id="L496" title="All 2 branches covered.">        if (!CollectionUtils.isEmpty(groups)) {</span>
+<span class="fc bfc" id="L497" title="All 2 branches covered.">            for (MemberDto groupMember : groups) {</span>
+<span class="fc" id="L498">                assigneeMembers.add(AssigneeMember.builder()</span>
+<span class="fc" id="L499">                        .active(true)</span>
+<span class="fc" id="L500">                        .groupId(groupMember.getId())</span>
+<span class="fc" id="L501">                        .assigneeId(assignee.getId())</span>
+<span class="fc" id="L502">                        .build());</span>
+<span class="fc" id="L503">            }</span>
+        }
+
+<span class="fc" id="L506">        assigneeMemberRepository.saveAll(assigneeMembers);</span>
+<span class="fc" id="L507">    }</span>
+
+    /**
+     * Filter tasks by group, user, status, and any combination of this 3 attributes
+     *
+     * @param taskFilterDto
+     * @return
+     */
+    public List&lt;TaskModelDto&gt; searchTasks(TaskFilterDto taskFilterDto) {
+<span class="nc" id="L516">        boolean isAMatch = false;</span>
+<span class="nc bnc" id="L517" title="All 4 branches missed.">        if (null != taskFilterDto.getGroupId() &amp;&amp; null != taskFilterDto.getUserId()) {</span>
+<span class="nc" id="L518">            isAMatch = userGroupService.checkIfUserBelongsToGroup(taskFilterDto.getUserId(), taskFilterDto.getGroupId());</span>
+        }
+
+<span class="nc" id="L521">        Set&lt;Long&gt; groupIdsForUSer = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L522" title="All 2 branches missed.">        if (null != taskFilterDto.getUserId()) {</span>
+<span class="nc" id="L523">            groupIdsForUSer = userGroupService.getGroupsIdsForUser(taskFilterDto.getUserId());</span>
+        }
+
+<span class="nc" id="L526">        taskFilterDto.setMatch(isAMatch);</span>
+
+<span class="nc" id="L528">        TaskSearchFilter taskSearchFilter = new TaskSearchFilter();</span>
+<span class="nc" id="L529">        taskSearchFilter.setTaskFilterDto(taskFilterDto);</span>
+<span class="nc" id="L530">        taskSearchFilter.setGroupIdsForUser(groupIdsForUSer);</span>
+
+<span class="nc" id="L532">        List&lt;TaskModelDto&gt; taskModelDtos = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L533" title="All 2 branches missed.">        for (Task task : taskRepository.findAll(taskSearchFilter)) {</span>
+<span class="nc" id="L534">            TaskModelDto taskModelDto = convertToModel(task);</span>
+
+<span class="nc" id="L536">            taskModelDtos.add(taskModelDto);</span>
+<span class="nc" id="L537">        }</span>
+
+<span class="nc" id="L539">        return taskModelDtos;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

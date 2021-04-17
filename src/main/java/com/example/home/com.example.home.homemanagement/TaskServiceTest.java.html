@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TaskServiceTest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HomeManagement_SpecTop$AllTests.exec</a> &gt; <a href="index.source.html" class="el_package">com.example.home.homemanagement</a> &gt; <span class="el_source">TaskServiceTest.java</span></div><h1>TaskServiceTest.java</h1><pre class="source lang-java linenums">package com.example.home.homemanagement;
+
+import com.example.home.dtos.MemberDto;
+import com.example.home.dtos.tasks.CreateTaskDto;
+import com.example.home.models.Assignee;
+import com.example.home.models.AssigneeMember;
+import com.example.home.models.Task;
+import com.example.home.models.User;
+import com.example.home.repositories.*;
+import com.example.home.services.TaskService;
+import com.example.home.services.UserGroupService;
+import com.example.home.services.UserService;
+import javassist.NotFoundException;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.*;
+
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.Set;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+<span class="nc" id="L28">public class TaskServiceTest {</span>
+    @Mock
+    private UserGroupRepository userGroupRepository;
+    @InjectMocks
+    private TaskService taskService;
+    @Mock
+    private TaskRepository taskRepository;
+    @Mock
+    private AssigneeRepository assigneeRepository;
+    @Mock
+    private AssigneeMemberRepository assigneeMemberRepository;
+    @Mock
+    private UserGroupService userGroupService;
+    @Mock
+    private UserRepository userRepository;
+    @InjectMocks
+    private UserService userService;
+
+    @Mock
+    private Principal principal;
+
+    @Captor
+    private ArgumentCaptor&lt;Task&gt; taskArgumentCaptor;
+    @Captor
+    private ArgumentCaptor&lt;Set&lt;AssigneeMember&gt;&gt; assigneeMemberArgumentCaptor;
+
+<span class="nc" id="L54">    @Rule</span>
+<span class="nc" id="L55">    public ExpectedException exceptionRule = ExpectedException.none();</span>
+
+
+    @Before
+    public void initMocks() {
+<span class="nc" id="L60">        userGroupService = new UserGroupService(userGroupRepository);</span>
+<span class="nc" id="L61">        MockitoAnnotations.initMocks(this);</span>
+<span class="nc" id="L62">        userService = new UserService(null, userRepository, null);</span>
+<span class="nc" id="L63">        taskService = new TaskService(taskRepository, userGroupService, assigneeRepository, assigneeMemberRepository, userService, null, null);</span>
+<span class="nc" id="L64">    }</span>
+
+    @Test
+    public void submit_completed_task() throws NotFoundException, IllegalAccessException {
+<span class="nc" id="L68">        Task task = new Task().setClaimedBy(1L).setId(2L).setStatus(Task.Status.COMPLETED);</span>
+
+<span class="nc" id="L70">        when(principal.getName()).thenReturn(&quot;email&quot;);</span>
+<span class="nc" id="L71">        when(userRepository.findByEmail(any())).thenReturn(User.builder().id(1L).build());</span>
+<span class="nc" id="L72">        when(taskRepository.findByTaskIdEagerlyActive(any())).thenReturn(java.util.Optional.ofNullable(task));</span>
+
+<span class="nc" id="L74">        exceptionRule.expect(IllegalAccessException.class);</span>
+<span class="nc" id="L75">        exceptionRule.expectMessage(&quot;The task was completed!&quot;);</span>
+
+<span class="nc" id="L77">        taskService.submitTask(principal, task.getId());</span>
+
+<span class="nc" id="L79">    }</span>
+
+    @Test
+    public void submit_unclaimed_task() throws NotFoundException, IllegalAccessException {
+<span class="nc" id="L83">        Task task = new Task().setId(2L).setStatus(Task.Status.IN_PROGRESS);</span>
+
+<span class="nc" id="L85">        when(principal.getName()).thenReturn(&quot;email&quot;);</span>
+<span class="nc" id="L86">        when(userRepository.findByEmail(any())).thenReturn(User.builder().id(1L).build());</span>
+<span class="nc" id="L87">        when(taskRepository.findByTaskIdEagerlyActive(any())).thenReturn(java.util.Optional.ofNullable(task));</span>
+
+<span class="nc" id="L89">        exceptionRule.expect(IllegalAccessException.class);</span>
+<span class="nc" id="L90">        exceptionRule.expectMessage(&quot;The task was not claimed!&quot;);</span>
+
+<span class="nc" id="L92">        taskService.submitTask(principal, task.getId());</span>
+
+<span class="nc" id="L94">    }</span>
+
+    @Test
+    public void submit_wrong_task() throws NotFoundException, IllegalAccessException {
+<span class="nc" id="L98">        Task task = new Task().setClaimedBy(3L).setClaimedByUser(new User()).setId(2L).setStatus(Task.Status.IN_PROGRESS);</span>
+
+<span class="nc" id="L100">        when(principal.getName()).thenReturn(&quot;email&quot;);</span>
+<span class="nc" id="L101">        when(userRepository.findByEmail(any())).thenReturn(User.builder().id(1L).build());</span>
+<span class="nc" id="L102">        when(taskRepository.findByTaskIdEagerlyActive(any())).thenReturn(java.util.Optional.ofNullable(task));</span>
+
+<span class="nc" id="L104">        exceptionRule.expect(IllegalAccessException.class);</span>
+<span class="nc" id="L105">        exceptionRule.expectMessage(&quot;Tou did not claimed this task!&quot;);</span>
+
+<span class="nc" id="L107">        taskService.submitTask(principal, task.getId());</span>
+
+<span class="nc" id="L109">    }</span>
+
+    @Test
+    public void submit_task() throws NotFoundException, IllegalAccessException {
+<span class="nc" id="L113">        Task task = new Task().setClaimedBy(1L).setClaimedByUser(new User()).setId(2L).setStatus(Task.Status.IN_PROGRESS);</span>
+
+<span class="nc" id="L115">        when(principal.getName()).thenReturn(&quot;email&quot;);</span>
+<span class="nc" id="L116">        when(userRepository.findByEmail(any())).thenReturn(User.builder().id(1L).build());</span>
+<span class="nc" id="L117">        when(taskRepository.findByTaskIdEagerlyActive(any())).thenReturn(java.util.Optional.ofNullable(task));</span>
+
+<span class="nc" id="L119">        taskService.submitTask(principal, task.getId());</span>
+
+<span class="nc" id="L121">        Mockito.verify(this.taskRepository,</span>
+<span class="nc" id="L122">                Mockito.times(1)).save(taskArgumentCaptor.capture());</span>
+<span class="nc" id="L123">        Task taskResulted = taskArgumentCaptor.getValue();</span>
+
+<span class="nc" id="L125">        Assert.assertEquals(Task.Status.COMPLETED, taskResulted.getStatus());</span>
+<span class="nc" id="L126">    }</span>
+
+    @Test
+    public void create_task_with_autoclaim(){
+<span class="nc" id="L130">        CreateTaskDto taskDto = buildTask(null, null, Set.of(new MemberDto(2L)));</span>
+
+<span class="nc" id="L132">        when(principal.getName()).thenReturn(&quot;email&quot;);</span>
+<span class="nc" id="L133">        when(userRepository.findByEmail(any())).thenReturn(User.builder().id(1L).build());</span>
+<span class="nc" id="L134">        when(taskRepository.save(any())).thenReturn(buildTaskEntity());</span>
+<span class="nc" id="L135">        when(assigneeRepository.save(any())).thenReturn(Assignee.builder()</span>
+<span class="nc" id="L136">                .id(3L)</span>
+<span class="nc" id="L137">                .build());</span>
+
+<span class="nc" id="L139">        taskService.createOrEditTask(taskDto, principal);</span>
+
+<span class="nc" id="L141">        Mockito.verify(this.taskRepository,</span>
+<span class="nc" id="L142">                Mockito.times(1)).save(taskArgumentCaptor.capture());</span>
+<span class="nc" id="L143">        Task task = taskArgumentCaptor.getValue();</span>
+
+<span class="nc" id="L145">        Assert.assertEquals(Long.valueOf(2L), task.getClaimedBy());</span>
+
+<span class="nc" id="L147">    }</span>
+
+    @Test(expected = IllegalAccessException.class)
+    public void create_task_with_no_assignees(){
+<span class="nc" id="L151">        CreateTaskDto taskDto = buildTask(null, null, null);</span>
+
+<span class="nc" id="L153">        when(principal.getName()).thenReturn(&quot;email&quot;);</span>
+
+<span class="nc" id="L155">        taskService.createOrEditTask(taskDto, principal);</span>
+<span class="nc" id="L156">    }</span>
+
+    @Test
+    public void create_task(){
+<span class="nc" id="L160">        CreateTaskDto taskDto = buildTask(null, Set.of(new MemberDto(2L)), null);</span>
+
+<span class="nc" id="L162">        when(userGroupService.getManagersForUserThatBelongToGroups(any())).thenReturn(new HashSet&lt;&gt;());</span>
+<span class="nc" id="L163">        when(principal.getName()).thenReturn(&quot;email&quot;);</span>
+<span class="nc" id="L164">        when(taskRepository.save(any())).thenReturn(buildTaskEntity());</span>
+<span class="nc" id="L165">        when(assigneeRepository.save(any())).thenReturn(Assignee.builder()</span>
+<span class="nc" id="L166">                .id(3L)</span>
+<span class="nc" id="L167">                .build());</span>
+
+<span class="nc" id="L169">        taskService.createOrEditTask(taskDto, principal);</span>
+
+<span class="nc" id="L171">        Mockito.verify(this.taskRepository,</span>
+<span class="nc" id="L172">                Mockito.times(1)).save(taskArgumentCaptor.capture());</span>
+<span class="nc" id="L173">        Task task = taskArgumentCaptor.getValue();</span>
+
+<span class="nc" id="L175">        Mockito.verify(this.assigneeMemberRepository,</span>
+<span class="nc" id="L176">                Mockito.times(1)).saveAll(assigneeMemberArgumentCaptor.capture());</span>
+<span class="nc" id="L177">        AssigneeMember assigneeMember = assigneeMemberArgumentCaptor.getValue().iterator().next();</span>
+
+<span class="nc" id="L179">        Assert.assertEquals(Task.Status.IN_PROGRESS, task.getStatus());</span>
+<span class="nc" id="L180">        Assert.assertEquals(taskDto.getGroups().iterator().next().getId(), assigneeMember.getGroupId());</span>
+
+<span class="nc" id="L182">    }</span>
+
+    @Test(expected = IllegalAccessException.class)
+    public void update_task_with_no_manager(){
+<span class="nc" id="L186">        CreateTaskDto taskDto = buildTask(1L, Set.of(new MemberDto(2L)), null);</span>
+
+<span class="nc" id="L188">        when(principal.getName()).thenReturn(&quot;email&quot;);</span>
+<span class="nc" id="L189">        when(taskRepository.findByTaskIdEagerlyActive(any()))</span>
+<span class="nc" id="L190">                .thenReturn(java.util.Optional.of(new Task()</span>
+<span class="nc" id="L191">                        .setActiveAssignedUsers(Set.of(new Assignee()</span>
+<span class="nc" id="L192">                        .setActiveAssigneeMemberSet(Set.of(new AssigneeMember().setGroupId(5L)))))));</span>
+
+<span class="nc" id="L194">        taskService.createOrEditTask(taskDto, principal);</span>
+
+<span class="nc" id="L196">        Mockito.verify(this.taskRepository,</span>
+<span class="nc" id="L197">                Mockito.times(1)).save(taskArgumentCaptor.capture());</span>
+<span class="nc" id="L198">        Task task = taskArgumentCaptor.getValue();</span>
+
+<span class="nc" id="L200">        Assert.assertEquals(taskDto.getCategory(), task.getCategory());</span>
+<span class="nc" id="L201">        Assert.assertEquals(Task.Status.IN_PROGRESS, task.getStatus());</span>
+<span class="nc" id="L202">        Assert.assertEquals(taskDto.getTitle(), task.getTitle());</span>
+<span class="nc" id="L203">        Assert.assertEquals(taskDto.getContent(), task.getContent());</span>
+<span class="nc" id="L204">    }</span>
+
+    public CreateTaskDto buildTask(Long id, Set&lt;MemberDto&gt; groups, Set&lt;MemberDto&gt; users){
+<span class="nc" id="L207">        return CreateTaskDto.createTaskDtoBuilder()</span>
+<span class="nc" id="L208">                .category(Task.Category.Cleaning)</span>
+<span class="nc" id="L209">                .title(&quot;title&quot;)</span>
+<span class="nc" id="L210">                .content(&quot;content&quot;)</span>
+<span class="nc" id="L211">                .users(users)</span>
+<span class="nc" id="L212">                .groups(groups)</span>
+<span class="nc" id="L213">                .id(id)</span>
+<span class="nc" id="L214">                .build();</span>
+    }
+
+    public Task buildTaskEntity(){
+<span class="nc" id="L218">        return Task.builder()</span>
+<span class="nc" id="L219">                .id(1L)</span>
+<span class="nc" id="L220">                .category(Task.Category.Cleaning)</span>
+<span class="nc" id="L221">                .title(&quot;title&quot;)</span>
+<span class="nc" id="L222">                .content(&quot;content&quot;)</span>
+<span class="nc" id="L223">                .status(Task.Status.IN_PROGRESS)</span>
+<span class="nc" id="L224">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

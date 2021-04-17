@@ -1,0 +1,143 @@
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html id="htmlId">
+<head>
+  <title>Coverage Report :: UserGroupService</title>
+  <style type="text/css">
+    @import "../../.css/coverage.css";
+  </style>
+</head>
+
+<body>
+<div class="header"></div>
+
+<div class="content">
+<div class="breadCrumbs">
+    [ <a href="../../index.html">all classes</a> ]
+    [ <a href="../index.html">com.example.home.services</a> ]
+</div>
+
+<h1>Coverage Summary for Class: UserGroupService (com.example.home.services)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">UserGroupService</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/ 1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    50%
+  </span>
+  <span class="absValue">
+    (4/ 8)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    66.7%
+  </span>
+  <span class="absValue">
+    (8/ 12)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<div class="sourceCode"><i>1</i>&nbsp;package com.example.home.services;
+<i>2</i>&nbsp;
+<i>3</i>&nbsp;import com.example.home.repositories.UserGroupRepository;
+<i>4</i>&nbsp;import org.springframework.beans.factory.annotation.Autowired;
+<i>5</i>&nbsp;import org.springframework.stereotype.Service;
+<i>6</i>&nbsp;import org.springframework.transaction.annotation.Transactional;
+<i>7</i>&nbsp;import org.springframework.util.StringUtils;
+<i>8</i>&nbsp;
+<i>9</i>&nbsp;import java.util.Set;
+<i>10</i>&nbsp;
+<i>11</i>&nbsp;@Service
+<i>12</i>&nbsp;public class UserGroupService {
+<i>13</i>&nbsp;
+<i>14</i>&nbsp;    private final UserGroupRepository userGroupRepository;
+<i>15</i>&nbsp;
+<i>16</i>&nbsp;    @Autowired
+<b class="fc"><i>17</i>&nbsp;    public UserGroupService(UserGroupRepository userGroupRepository) {</b>
+<b class="fc"><i>18</i>&nbsp;        this.userGroupRepository = userGroupRepository;</b>
+<b class="fc"><i>19</i>&nbsp;    }</b>
+<i>20</i>&nbsp;
+<i>21</i>&nbsp;    @Transactional(readOnly = true)
+<i>22</i>&nbsp;    public boolean checkForManager(Set&lt;Long&gt; groupIds, String principalEmail) {
+<b class="fc"><i>23</i>&nbsp;        String email = userGroupRepository.findManagerByGroupIds(groupIds, principalEmail);</b>
+<b class="fc"><i>24</i>&nbsp;        return StringUtils.isEmpty(email) ? false : true;</b>
+<i>25</i>&nbsp;    }
+<i>26</i>&nbsp;
+<i>27</i>&nbsp;//    @Transactional(readOnly = true)
+<i>28</i>&nbsp;//    public Set&lt;String&gt; getManagersForUserThatBelongToGroups(Set&lt;Long&gt; groupIds, Long userThatClaimedTask) {
+<i>29</i>&nbsp;//        Set&lt;Long&gt; remainingGroupIds = userGroupRepository.selectGroupsToWhichUserBelongs(groupIds, userThatClaimedTask);
+<i>30</i>&nbsp;//        Set&lt;String&gt; managerEmails = userGroupRepository.getManagersEmailsForGroups(remainingGroupIds);
+<i>31</i>&nbsp;//        return managerEmails;
+<i>32</i>&nbsp;//    }
+<i>33</i>&nbsp;
+<i>34</i>&nbsp;    @Transactional(readOnly = true)
+<i>35</i>&nbsp;    public Set&lt;String&gt; getManagersForUserThatBelongToGroups(Set&lt;Long&gt; groupIds) {
+<i>36</i>&nbsp;//        Set&lt;Long&gt; remainingGroupIds = userGroupRepository.selectGroupsToWhichUserBelongs(groupIds, userThatClaimedTask);
+<b class="fc"><i>37</i>&nbsp;        Set&lt;String&gt; managerEmails = userGroupRepository.getManagersEmailsForGroups(groupIds);</b>
+<b class="fc"><i>38</i>&nbsp;        return managerEmails;</b>
+<i>39</i>&nbsp;    }
+<i>40</i>&nbsp;
+<i>41</i>&nbsp;    public Set&lt;Long&gt; getGroupIdsManagedByPrinciple(Long userId) {
+<b class="nc"><i>42</i>&nbsp;        return userGroupRepository.findGroupIdsManagedByPrinciple(userId);</b>
+<i>43</i>&nbsp;    }
+<i>44</i>&nbsp;
+<i>45</i>&nbsp;    public boolean checkIfUserBelongsToGroup(Long userId, Long groupId) {
+<b class="nc"><i>46</i>&nbsp;        return userGroupRepository.findByUserIdAndGroupId(userId, groupId).isPresent() ? true : false;</b>
+<i>47</i>&nbsp;    }
+<i>48</i>&nbsp;
+<i>49</i>&nbsp;    public Set&lt;Long&gt; getGroupsIdsForUser(Long userId) {
+<b class="nc"><i>50</i>&nbsp;        return userGroupRepository.findGroupIdsByUserId(userId);</b>
+<i>51</i>&nbsp;    }
+<i>52</i>&nbsp;
+<i>53</i>&nbsp;    public Set&lt;Long&gt; getUserIdsForGroup(Long groupId) {
+<b class="nc"><i>54</i>&nbsp;        return userGroupRepository.findUserIdsByGroupId(groupId);</b>
+<i>55</i>&nbsp;    }
+<i>56</i>&nbsp;
+<i>57</i>&nbsp;    public Set&lt;Long&gt; getUserIdsForGroupIds(Set&lt;Long&gt; groupIds) {
+<b class="fc"><i>58</i>&nbsp;        return userGroupRepository.findUserIdsByGroupIds(groupIds);</b>
+<i>59</i>&nbsp;    }
+<i>60</i>&nbsp;}
+</div>
+</div>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2021-04-17 18:48</div>
+</div>
+</body>
+</html>

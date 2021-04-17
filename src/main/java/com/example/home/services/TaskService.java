@@ -1,8 +1,21 @@
 package com.example.home.services;
 
+import com.example.home.dtos.GroupDto;
+import com.example.home.dtos.MemberDto;
+import com.example.home.dtos.tasks.CreateTaskDto;
+import com.example.home.dtos.tasks.TaskFilterDto;
+import com.example.home.dtos.tasks.TaskModelDto;
+import com.example.home.dtos.tasks.TaskSearchFilter;
+import com.example.home.dtos.user.UserDto;
+import com.example.home.models.*;
 import com.example.home.repositories.AssigneeMemberRepository;
 import com.example.home.repositories.AssigneeRepository;
 import com.example.home.repositories.TaskRepository;
+import com.example.home.services.observable.ManagerObserver;
+import com.example.home.services.observable.TaskObservable;
+import com.example.home.services.observable.TaskObservableModel;
+import com.example.home.services.states.CreatedState;
+import com.example.home.services.states.InProgressState;
 import javassist.NotFoundException;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;

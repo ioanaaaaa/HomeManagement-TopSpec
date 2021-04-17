@@ -1,6 +1,5 @@
 package com.example.home.services.states;
 
-
 import com.example.home.models.Task;
 
 public class CreatedState implements TaskState {

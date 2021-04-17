@@ -65,6 +65,7 @@ public class Task {
     @Where(clause = "active=true")
     private Set<Assignee> activeAssignedUsers = new HashSet<>();
 
+    //    @Enumerated(EnumType.STRING)
 //    @Enumerated(EnumType.STRING)
     @Convert(converter = JsonStateConverter.class)
     private TaskState state;

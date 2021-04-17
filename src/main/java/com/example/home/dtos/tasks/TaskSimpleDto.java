@@ -1,6 +1,6 @@
 package com.example.home.dtos.tasks;
 
-import com.fmi.homemanagement.models.Task;
+import com.example.home.models.Task;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

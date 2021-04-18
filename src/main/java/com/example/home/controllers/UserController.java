@@ -28,7 +28,7 @@ public class UserController {
         return userService.getByEmail(principal.getName());
     }
 
-    @PostMapping("")
+    @GetMapping("")
     public List<UserDto> searchUsers(@RequestParam(value = "searchTerm", required = false) String searchTerm){
         return UserDto.toDtos(userService.searchUsers(searchTerm));
     }

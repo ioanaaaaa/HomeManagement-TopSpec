@@ -1,23 +1,32 @@
-package com.fmi.homemanagement.aop;
+package com.example.home.aop.aspects;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.After;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.annotation.Pointcut;
+import org.springframework.stereotype.Component;
 
-public aspect LogService {
+@Aspect
+@Component
+public class LogService {
     private long startTime;
 
-    pointcut serviceMethodExecute(): execution (* com.fmi.homemanagement.services..*(..));
+    @Pointcut("execution (* com.example.home.services..*(..))")
+    public void serviceMethodPointcut() {
+    }
 
-    before(): serviceMethodExecute() {
+    @Before("serviceMethodPointcut()")
+    public void executeBeforeServiceMethod() {
         startTime = System.currentTimeMillis();
     }
 
-    after(): serviceMethodExecute() {
+    @After("serviceMethodPointcut()")
+    public void executeAfterServiceMethod(JoinPoint jp) {
         StringBuffer enterMethod = new StringBuffer();
 
         enterMethod.append("Entering in method ");
-        enterMethod.append(thisJoinPoint.getSignature().getName());
+        enterMethod.append(jp.getSignature().getName());
         enterMethod.append("(");
 
         String args = null;
@@ -31,7 +40,7 @@ public aspect LogService {
 
         StringBuffer exitMethod = new StringBuffer();
         exitMethod.append("Exit method ");
-        exitMethod.append(thisJoinPoint.getSignature().getName());
+        exitMethod.append(jp.getSignature().getName());
 
         System.out.println(exitMethod);
 

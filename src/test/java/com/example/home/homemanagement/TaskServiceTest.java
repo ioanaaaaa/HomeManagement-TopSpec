@@ -176,7 +176,7 @@ public class TaskServiceTest {
                 Mockito.times(1)).saveAll(assigneeMemberArgumentCaptor.capture());
         AssigneeMember assigneeMember = assigneeMemberArgumentCaptor.getValue().iterator().next();
 
-        Assert.assertEquals(Task.Status.IN_PROGRESS, task.getStatus());
+        Assert.assertEquals(Task.Status.CREATED, task.getStatus());
         Assert.assertEquals(taskDto.getGroups().iterator().next().getId(), assigneeMember.getGroupId());
 
     }

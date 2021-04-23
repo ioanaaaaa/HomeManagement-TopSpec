@@ -7,6 +7,9 @@ import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 @Aspect
 @Component
 public class LogService {
@@ -29,10 +32,9 @@ public class LogService {
         enterMethod.append(jp.getSignature().getName());
         enterMethod.append("(");
 
-        String args = null;
-//        String args = Arrays.stream(thisJoinPoint.getArgs())
-//                .map(Object::toString)
-//                .collect(Collectors.joining(", "));
+        String args = Arrays.stream(jp.getArgs())
+                .map(Object::toString)
+                .collect(Collectors.joining(", "));
         enterMethod.append(args);
         enterMethod.append(")");
 

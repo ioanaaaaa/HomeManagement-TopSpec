@@ -11,7 +11,7 @@ import java.util.List;
 @Aspect
 @Component
 public class RegisterUserAndServicesReturningAdvice {
-    @Pointcut("execution (public java.util.List com.example.home.services.UserService.registerUser(..))")
+    @Pointcut("execution (public String com.example.home.services.UserService.registerUser(..))")
     public void userRegisterPointcut() {
     }
 
